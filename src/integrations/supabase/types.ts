@@ -14,6 +14,396 @@ export type Database = {
   }
   public: {
     Tables: {
+      actions: {
+        Row: {
+          created_at: string
+          criticality: Database["public"]["Enums"]["criticality"]
+          deadline: string
+          decision_id: string
+          description: string
+          id: string
+          pelouro_id: string | null
+          progress: number
+          responsible_id: string | null
+          start_date: string
+          status: Database["public"]["Enums"]["action_status"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          criticality?: Database["public"]["Enums"]["criticality"]
+          deadline: string
+          decision_id: string
+          description: string
+          id?: string
+          pelouro_id?: string | null
+          progress?: number
+          responsible_id?: string | null
+          start_date?: string
+          status?: Database["public"]["Enums"]["action_status"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          criticality?: Database["public"]["Enums"]["criticality"]
+          deadline?: string
+          decision_id?: string
+          description?: string
+          id?: string
+          pelouro_id?: string | null
+          progress?: number
+          responsible_id?: string | null
+          start_date?: string
+          status?: Database["public"]["Enums"]["action_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "actions_decision_id_fkey"
+            columns: ["decision_id"]
+            isOneToOne: false
+            referencedRelation: "decisions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "actions_pelouro_id_fkey"
+            columns: ["pelouro_id"]
+            isOneToOne: false
+            referencedRelation: "pelouros"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "actions_responsible_id_fkey"
+            columns: ["responsible_id"]
+            isOneToOne: false
+            referencedRelation: "administrators"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      administrator_pelouros: {
+        Row: {
+          administrator_id: string
+          created_at: string
+          id: string
+          pelouro_id: string
+        }
+        Insert: {
+          administrator_id: string
+          created_at?: string
+          id?: string
+          pelouro_id: string
+        }
+        Update: {
+          administrator_id?: string
+          created_at?: string
+          id?: string
+          pelouro_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "administrator_pelouros_administrator_id_fkey"
+            columns: ["administrator_id"]
+            isOneToOne: false
+            referencedRelation: "administrators"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "administrator_pelouros_pelouro_id_fkey"
+            columns: ["pelouro_id"]
+            isOneToOne: false
+            referencedRelation: "pelouros"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      administrators: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          email: string
+          id: string
+          name: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          email: string
+          id?: string
+          name: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          email?: string
+          id?: string
+          name?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      agenda_point_pelouros: {
+        Row: {
+          agenda_point_id: string
+          created_at: string
+          id: string
+          pelouro_id: string
+        }
+        Insert: {
+          agenda_point_id: string
+          created_at?: string
+          id?: string
+          pelouro_id: string
+        }
+        Update: {
+          agenda_point_id?: string
+          created_at?: string
+          id?: string
+          pelouro_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agenda_point_pelouros_agenda_point_id_fkey"
+            columns: ["agenda_point_id"]
+            isOneToOne: false
+            referencedRelation: "agenda_points"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agenda_point_pelouros_pelouro_id_fkey"
+            columns: ["pelouro_id"]
+            isOneToOne: false
+            referencedRelation: "pelouros"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agenda_points: {
+        Row: {
+          background: string | null
+          created_at: string
+          description: string | null
+          id: string
+          is_confidential: boolean
+          meeting_id: string
+          order: number
+          point_type: Database["public"]["Enums"]["point_type"]
+          priority: Database["public"]["Enums"]["priority"]
+          proposer_id: string | null
+          status: Database["public"]["Enums"]["agenda_point_status"]
+          subject: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          background?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_confidential?: boolean
+          meeting_id: string
+          order?: number
+          point_type?: Database["public"]["Enums"]["point_type"]
+          priority?: Database["public"]["Enums"]["priority"]
+          proposer_id?: string | null
+          status?: Database["public"]["Enums"]["agenda_point_status"]
+          subject: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          background?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_confidential?: boolean
+          meeting_id?: string
+          order?: number
+          point_type?: Database["public"]["Enums"]["point_type"]
+          priority?: Database["public"]["Enums"]["priority"]
+          proposer_id?: string | null
+          status?: Database["public"]["Enums"]["agenda_point_status"]
+          subject?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agenda_points_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "meetings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agenda_points_proposer_id_fkey"
+            columns: ["proposer_id"]
+            isOneToOne: false
+            referencedRelation: "administrators"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      decisions: {
+        Row: {
+          abstentions: number | null
+          agenda_point_id: string
+          background: string | null
+          created_at: string
+          criticality: Database["public"]["Enums"]["criticality"]
+          date: string
+          deliberation: string | null
+          id: string
+          text: string
+          type: Database["public"]["Enums"]["decision_type"]
+          updated_at: string
+          vote_mode: Database["public"]["Enums"]["vote_mode"]
+          votes_against: number | null
+          votes_for: number | null
+        }
+        Insert: {
+          abstentions?: number | null
+          agenda_point_id: string
+          background?: string | null
+          created_at?: string
+          criticality?: Database["public"]["Enums"]["criticality"]
+          date?: string
+          deliberation?: string | null
+          id?: string
+          text: string
+          type?: Database["public"]["Enums"]["decision_type"]
+          updated_at?: string
+          vote_mode?: Database["public"]["Enums"]["vote_mode"]
+          votes_against?: number | null
+          votes_for?: number | null
+        }
+        Update: {
+          abstentions?: number | null
+          agenda_point_id?: string
+          background?: string | null
+          created_at?: string
+          criticality?: Database["public"]["Enums"]["criticality"]
+          date?: string
+          deliberation?: string | null
+          id?: string
+          text?: string
+          type?: Database["public"]["Enums"]["decision_type"]
+          updated_at?: string
+          vote_mode?: Database["public"]["Enums"]["vote_mode"]
+          votes_against?: number | null
+          votes_for?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "decisions_agenda_point_id_fkey"
+            columns: ["agenda_point_id"]
+            isOneToOne: false
+            referencedRelation: "agenda_points"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      meeting_participants: {
+        Row: {
+          administrator_id: string
+          created_at: string
+          id: string
+          is_observer: boolean
+          meeting_id: string
+        }
+        Insert: {
+          administrator_id: string
+          created_at?: string
+          id?: string
+          is_observer?: boolean
+          meeting_id: string
+        }
+        Update: {
+          administrator_id?: string
+          created_at?: string
+          id?: string
+          is_observer?: boolean
+          meeting_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meeting_participants_administrator_id_fkey"
+            columns: ["administrator_id"]
+            isOneToOne: false
+            referencedRelation: "administrators"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meeting_participants_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "meetings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      meetings: {
+        Row: {
+          agenda_points_count: number
+          created_at: string
+          created_by: string | null
+          date: string
+          id: string
+          location: string
+          status: Database["public"]["Enums"]["meeting_status"]
+          type: Database["public"]["Enums"]["meeting_type"]
+          updated_at: string
+        }
+        Insert: {
+          agenda_points_count?: number
+          created_at?: string
+          created_by?: string | null
+          date: string
+          id?: string
+          location: string
+          status?: Database["public"]["Enums"]["meeting_status"]
+          type: Database["public"]["Enums"]["meeting_type"]
+          updated_at?: string
+        }
+        Update: {
+          agenda_points_count?: number
+          created_at?: string
+          created_by?: string | null
+          date?: string
+          id?: string
+          location?: string
+          status?: Database["public"]["Enums"]["meeting_status"]
+          type?: Database["public"]["Enums"]["meeting_type"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      pelouros: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -86,7 +476,27 @@ export type Database = {
       }
     }
     Enums: {
+      action_status:
+        | "Por iniciar"
+        | "Em curso"
+        | "Concluída"
+        | "Bloqueada"
+        | "Cancelada"
+      agenda_point_status:
+        | "Proposto"
+        | "Aprovado"
+        | "Em discussão"
+        | "Fechado"
+        | "Acompanhamento"
+        | "Encerrado"
       app_role: "admin" | "sec" | "gestao" | "leitor"
+      criticality: "Crítica" | "Importante" | "Rotina"
+      decision_type: "Estratégica" | "Táctica" | "Operacional"
+      meeting_status: "Preparação" | "Em Curso" | "Concluída" | "Publicada"
+      meeting_type: "CA" | "CEAAP" | "RT"
+      point_type: "Informação" | "Decisão" | "Discussão"
+      priority: "Alta" | "Média" | "Baixa"
+      vote_mode: "Unanimidade" | "Votação" | "Consenso"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -214,7 +624,29 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      action_status: [
+        "Por iniciar",
+        "Em curso",
+        "Concluída",
+        "Bloqueada",
+        "Cancelada",
+      ],
+      agenda_point_status: [
+        "Proposto",
+        "Aprovado",
+        "Em discussão",
+        "Fechado",
+        "Acompanhamento",
+        "Encerrado",
+      ],
       app_role: ["admin", "sec", "gestao", "leitor"],
+      criticality: ["Crítica", "Importante", "Rotina"],
+      decision_type: ["Estratégica", "Táctica", "Operacional"],
+      meeting_status: ["Preparação", "Em Curso", "Concluída", "Publicada"],
+      meeting_type: ["CA", "CEAAP", "RT"],
+      point_type: ["Informação", "Decisão", "Discussão"],
+      priority: ["Alta", "Média", "Baixa"],
+      vote_mode: ["Unanimidade", "Votação", "Consenso"],
     },
   },
 } as const
