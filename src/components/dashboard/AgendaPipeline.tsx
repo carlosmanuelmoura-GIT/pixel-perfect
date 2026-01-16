@@ -1,4 +1,4 @@
-import { AgendaPoint, AgendaPointStatus } from '@/types';
+import type { AgendaPoint, AgendaPointStatus } from '@/types/database';
 import { cn } from '@/lib/utils';
 import { 
   FileQuestion, 
@@ -11,6 +11,7 @@ import {
 
 interface AgendaPipelineProps {
   points: AgendaPoint[];
+  isLoading?: boolean;
 }
 
 const statusConfig: Record<AgendaPointStatus, {
@@ -57,7 +58,26 @@ const statusConfig: Record<AgendaPointStatus, {
   },
 };
 
-export function AgendaPipeline({ points }: AgendaPipelineProps) {
+export function AgendaPipeline({ points, isLoading }: AgendaPipelineProps) {
+  if (isLoading) {
+    return (
+      <div className="bg-card rounded-xl border border-border/50 shadow-card overflow-hidden">
+        <div className="px-6 py-4 border-b border-border/50">
+          <div className="h-5 bg-muted rounded w-40 animate-pulse" />
+          <div className="h-4 bg-muted rounded w-32 mt-1 animate-pulse" />
+        </div>
+        <div className="p-6">
+          <div className="h-2 bg-muted rounded-full mb-6 animate-pulse" />
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            {[1, 2, 3, 4, 5, 6].map((i) => (
+              <div key={i} className="h-16 bg-muted rounded-lg animate-pulse" />
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const statusCounts = Object.keys(statusConfig).reduce((acc, status) => {
     acc[status as AgendaPointStatus] = points.filter(p => p.status === status).length;
     return acc;
