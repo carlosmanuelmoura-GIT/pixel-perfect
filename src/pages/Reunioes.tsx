@@ -9,7 +9,8 @@ import {
   MapPin, 
   Users, 
   ChevronRight,
-  MoreHorizontal 
+  MoreHorizontal,
+  Loader2
 } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
@@ -27,8 +28,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { meetings, administrators } from '@/data/mockData';
-import { Meeting, MeetingStatus, MeetingType } from '@/types';
+import { useMeetings } from '@/hooks/useSupabaseData';
+import type { Meeting, MeetingStatus, MeetingType } from '@/types/database';
 import { cn } from '@/lib/utils';
 
 const meetingTypeStyles: Record<MeetingType, string> = {
@@ -53,6 +54,7 @@ const meetingTypeLabels: Record<MeetingType, string> = {
 export default function Reunioes() {
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const { data: meetings = [], isLoading } = useMeetings();
 
   const filteredMeetings = meetings.filter(meeting => {
     if (typeFilter !== 'all' && meeting.type !== typeFilter) return false;
@@ -60,20 +62,27 @@ export default function Reunioes() {
     return true;
   });
 
-  const getParticipantNames = (participantIds: string[]) => {
-    return participantIds
-      .map(id => administrators.find(a => a.id === id)?.name)
+  const getParticipantNames = (participants?: Meeting['participants']) => {
+    if (!participants) return '';
+    return participants
+      .map(p => p.administrator?.name)
       .filter(Boolean)
       .join(', ');
   };
 
+  if (isLoading) {
+    return (
+      <AppLayout title="Reuniões" subtitle="Gestão de reuniões do Board">
+        <div className="flex items-center justify-center h-64">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        </div>
+      </AppLayout>
+    );
+  }
+
   return (
-    <AppLayout 
-      title="Reuniões" 
-      subtitle="Gestão de reuniões do Board"
-    >
+    <AppLayout title="Reuniões" subtitle="Gestão de reuniões do Board">
       <div className="space-y-6">
-        {/* Actions Bar */}
         <div className="flex flex-col sm:flex-row gap-4 justify-between">
           <div className="flex flex-wrap gap-3">
             <Select value={typeFilter} onValueChange={setTypeFilter}>
@@ -109,7 +118,6 @@ export default function Reunioes() {
           </Button>
         </div>
 
-        {/* Meetings Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           {filteredMeetings.map((meeting, index) => (
             <MeetingCard 
@@ -142,6 +150,8 @@ interface MeetingCardProps {
 }
 
 function MeetingCard({ meeting, participantNames, index }: MeetingCardProps) {
+  const date = new Date(meeting.date);
+  
   return (
     <div 
       className={cn(
@@ -174,31 +184,33 @@ function MeetingCard({ meeting, participantNames, index }: MeetingCardProps) {
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Clock className="w-4 h-4" />
                 <span>
-                  {format(meeting.date, "EEEE, dd 'de' MMMM 'às' HH:mm", { locale: pt })}
+                  {format(date, "EEEE, dd 'de' MMMM 'às' HH:mm", { locale: pt })}
                 </span>
               </div>
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <MapPin className="w-4 h-4" />
                 <span>{meeting.location}</span>
               </div>
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Users className="w-4 h-4" />
-                <span className="truncate">{participantNames}</span>
-              </div>
+              {participantNames && (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Users className="w-4 h-4" />
+                  <span className="truncate">{participantNames}</span>
+                </div>
+              )}
             </div>
           </div>
           
           <div className="text-right flex-shrink-0">
             <div className="bg-muted/50 rounded-lg p-3 text-center mb-2">
               <div className="text-2xl font-bold text-foreground">
-                {format(meeting.date, "dd")}
+                {format(date, "dd")}
               </div>
               <div className="text-xs text-muted-foreground uppercase">
-                {format(meeting.date, "MMM", { locale: pt })}
+                {format(date, "MMM", { locale: pt })}
               </div>
             </div>
             <div className="text-xs text-muted-foreground">
-              {meeting.agendaPointsCount} pontos
+              {meeting.agenda_points_count} pontos
             </div>
           </div>
         </div>
@@ -206,7 +218,7 @@ function MeetingCard({ meeting, participantNames, index }: MeetingCardProps) {
       
       <div className="px-5 py-3 bg-muted/30 border-t border-border/50 flex items-center justify-between">
         <span className="text-xs text-muted-foreground">
-          {meeting.agendaPointsCount} pontos de agenda
+          {meeting.agenda_points_count} pontos de agenda
         </span>
         <div className="flex items-center gap-2">
           <DropdownMenu>
