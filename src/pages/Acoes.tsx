@@ -71,7 +71,7 @@ export default function Acoes() {
 
   if (isLoading) {
     return (
-      <AppLayout title="Ações de Follow-up" subtitle="Acompanhamento das ações resultantes das decisões">
+      <AppLayout title="Ações em Follow-up" subtitle="Acompanhamento das ações resultantes das decisões">
         <div className="flex items-center justify-center h-64">
           <Loader2 className="w-8 h-8 animate-spin text-primary" />
         </div>
@@ -80,7 +80,7 @@ export default function Acoes() {
   }
 
   return (
-    <AppLayout title="Ações de Follow-up" subtitle="Acompanhamento das ações resultantes das decisões">
+    <AppLayout title="Ações em Follow-up" subtitle="Acompanhamento das ações resultantes das decisões">
       <div className="space-y-6">
         <div className="flex flex-col sm:flex-row gap-4 justify-between">
           <div className="flex flex-wrap gap-3">

@@ -9,6 +9,7 @@ import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
 import Reunioes from "./pages/Reunioes";
+import Agenda from "./pages/Agenda";
 import Acoes from "./pages/Acoes";
 import Login from "./pages/Login";
 import Registar from "./pages/Registar";
@@ -44,6 +45,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <Reunioes />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/agenda"
+              element={
+                <ProtectedRoute>
+                  <Agenda />
                 </ProtectedRoute>
               }
             />
