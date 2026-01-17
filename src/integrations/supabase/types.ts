@@ -147,6 +147,60 @@ export type Database = {
         }
         Relationships: []
       }
+      agenda_point_attributes: {
+        Row: {
+          agenda_point_id: string
+          attribute_definition_id: string
+          created_at: string
+          id: string
+          updated_at: string
+          value_boolean: boolean | null
+          value_date: string | null
+          value_json: Json | null
+          value_number: number | null
+          value_text: string | null
+        }
+        Insert: {
+          agenda_point_id: string
+          attribute_definition_id: string
+          created_at?: string
+          id?: string
+          updated_at?: string
+          value_boolean?: boolean | null
+          value_date?: string | null
+          value_json?: Json | null
+          value_number?: number | null
+          value_text?: string | null
+        }
+        Update: {
+          agenda_point_id?: string
+          attribute_definition_id?: string
+          created_at?: string
+          id?: string
+          updated_at?: string
+          value_boolean?: boolean | null
+          value_date?: string | null
+          value_json?: Json | null
+          value_number?: number | null
+          value_text?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agenda_point_attributes_agenda_point_id_fkey"
+            columns: ["agenda_point_id"]
+            isOneToOne: false
+            referencedRelation: "agenda_points"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agenda_point_attributes_attribute_definition_id_fkey"
+            columns: ["attribute_definition_id"]
+            isOneToOne: false
+            referencedRelation: "attribute_definitions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       agenda_point_pelouros: {
         Row: {
           agenda_point_id: string
@@ -248,6 +302,98 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      attribute_definitions: {
+        Row: {
+          attribute_type: Database["public"]["Enums"]["attribute_type"]
+          created_at: string
+          default_value: string | null
+          description: string | null
+          family_id: string
+          id: string
+          is_active: boolean
+          is_required: boolean
+          label: string
+          name: string
+          options: Json | null
+          order_index: number
+          updated_at: string
+          validation_rules: Json | null
+        }
+        Insert: {
+          attribute_type?: Database["public"]["Enums"]["attribute_type"]
+          created_at?: string
+          default_value?: string | null
+          description?: string | null
+          family_id: string
+          id?: string
+          is_active?: boolean
+          is_required?: boolean
+          label: string
+          name: string
+          options?: Json | null
+          order_index?: number
+          updated_at?: string
+          validation_rules?: Json | null
+        }
+        Update: {
+          attribute_type?: Database["public"]["Enums"]["attribute_type"]
+          created_at?: string
+          default_value?: string | null
+          description?: string | null
+          family_id?: string
+          id?: string
+          is_active?: boolean
+          is_required?: boolean
+          label?: string
+          name?: string
+          options?: Json | null
+          order_index?: number
+          updated_at?: string
+          validation_rules?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "attribute_definitions_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "attribute_families"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      attribute_families: {
+        Row: {
+          created_at: string
+          description: string | null
+          icon: string | null
+          id: string
+          is_active: boolean
+          name: string
+          order_index: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          order_index?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          order_index?: number
+          updated_at?: string
+        }
+        Relationships: []
       }
       decisions: {
         Row: {
@@ -490,6 +636,18 @@ export type Database = {
         | "Acompanhamento"
         | "Encerrado"
       app_role: "admin" | "sec" | "gestao" | "leitor"
+      attribute_type:
+        | "text"
+        | "textarea"
+        | "number"
+        | "date"
+        | "datetime"
+        | "boolean"
+        | "select"
+        | "multi_select"
+        | "url"
+        | "email"
+        | "currency"
       criticality: "Crítica" | "Importante" | "Rotina"
       decision_type: "Estratégica" | "Táctica" | "Operacional"
       meeting_status: "Preparação" | "Em Curso" | "Concluída" | "Publicada"
@@ -640,6 +798,19 @@ export const Constants = {
         "Encerrado",
       ],
       app_role: ["admin", "sec", "gestao", "leitor"],
+      attribute_type: [
+        "text",
+        "textarea",
+        "number",
+        "date",
+        "datetime",
+        "boolean",
+        "select",
+        "multi_select",
+        "url",
+        "email",
+        "currency",
+      ],
       criticality: ["Crítica", "Importante", "Rotina"],
       decision_type: ["Estratégica", "Táctica", "Operacional"],
       meeting_status: ["Preparação", "Em Curso", "Concluída", "Publicada"],

@@ -106,6 +106,52 @@ export interface Action {
   decision?: Decision;
 }
 
+export type AttributeType = 'text' | 'textarea' | 'number' | 'date' | 'datetime' | 'boolean' | 'select' | 'multi_select' | 'url' | 'email' | 'currency';
+
+export interface AttributeFamily {
+  id: string;
+  name: string;
+  description: string | null;
+  icon: string;
+  order_index: number;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+  definitions?: AttributeDefinition[];
+}
+
+export interface AttributeDefinition {
+  id: string;
+  family_id: string;
+  name: string;
+  label: string;
+  description: string | null;
+  attribute_type: AttributeType;
+  is_required: boolean;
+  is_active: boolean;
+  order_index: number;
+  default_value: string | null;
+  options: { options: { value: string; label: string }[] } | null;
+  validation_rules: Record<string, unknown> | null;
+  created_at: string;
+  updated_at: string;
+  family?: AttributeFamily;
+}
+
+export interface AgendaPointAttribute {
+  id: string;
+  agenda_point_id: string;
+  attribute_definition_id: string;
+  value_text: string | null;
+  value_number: number | null;
+  value_boolean: boolean | null;
+  value_date: string | null;
+  value_json: Record<string, unknown> | null;
+  created_at: string;
+  updated_at: string;
+  attribute_definition?: AttributeDefinition;
+}
+
 export interface Profile {
   id: string;
   user_id: string;

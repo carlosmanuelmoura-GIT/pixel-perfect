@@ -24,7 +24,7 @@ const navItems: NavItem[] = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/' },
   { icon: Calendar, label: 'Reuniões', path: '/reunioes' },
   { icon: ListChecks, label: 'Pontos de Agenda', path: '/agenda' },
-  { icon: CheckSquare, label: 'Ações', path: '/acoes' },
+  { icon: CheckSquare, label: 'Ações em Follow-up', path: '/acoes' },
   { icon: BarChart3, label: 'Indicadores', path: '/indicadores' },
 ];
 
@@ -54,8 +54,8 @@ export function Sidebar() {
         </div>
         {!collapsed && (
           <div className="animate-fade-in">
-            <h1 className="text-sidebar-foreground font-semibold text-sm">BoardFlow</h1>
-            <p className="text-sidebar-foreground/50 text-xs">Gestão de Decisões</p>
+            <h1 className="text-sidebar-foreground font-semibold text-sm">Gestão Decisões CA</h1>
+            <p className="text-sidebar-foreground/50 text-xs">Conselho de Administração</p>
           </div>
         )}
       </div>

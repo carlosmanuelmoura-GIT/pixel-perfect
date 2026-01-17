@@ -8,7 +8,9 @@ import type {
   Administrator, 
   Pelouro,
   ActionStatus,
-  Criticality
+  AttributeFamily,
+  AttributeDefinition,
+  AgendaPointAttribute
 } from '@/types/database';
 
 // Meetings
@@ -208,6 +210,73 @@ export function usePelouros() {
       if (error) throw error;
       return data as Pelouro[];
     },
+  });
+}
+
+// Attribute Families
+export function useAttributeFamilies() {
+  return useQuery({
+    queryKey: ['attribute_families'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('attribute_families')
+        .select(`
+          *,
+          definitions:attribute_definitions(*)
+        `)
+        .eq('is_active', true)
+        .order('order_index', { ascending: true });
+      
+      if (error) throw error;
+      return data as AttributeFamily[];
+    },
+  });
+}
+
+// Attribute Definitions
+export function useAttributeDefinitions(familyId?: string) {
+  return useQuery({
+    queryKey: ['attribute_definitions', familyId],
+    queryFn: async () => {
+      let query = supabase
+        .from('attribute_definitions')
+        .select('*, family:attribute_families(*)')
+        .eq('is_active', true)
+        .order('order_index', { ascending: true });
+      
+      if (familyId) {
+        query = query.eq('family_id', familyId);
+      }
+      
+      const { data, error } = await query;
+      if (error) throw error;
+      return data as AttributeDefinition[];
+    },
+  });
+}
+
+// Agenda Point Attributes
+export function useAgendaPointAttributes(agendaPointId?: string) {
+  return useQuery({
+    queryKey: ['agenda_point_attributes', agendaPointId],
+    queryFn: async () => {
+      if (!agendaPointId) return [];
+      
+      const { data, error } = await supabase
+        .from('agenda_point_attributes')
+        .select(`
+          *,
+          attribute_definition:attribute_definitions(
+            *,
+            family:attribute_families(*)
+          )
+        `)
+        .eq('agenda_point_id', agendaPointId);
+      
+      if (error) throw error;
+      return data as AgendaPointAttribute[];
+    },
+    enabled: !!agendaPointId,
   });
 }
 
