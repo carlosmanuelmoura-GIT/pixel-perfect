@@ -1,8 +1,8 @@
 import { 
   Calendar, 
-  ListChecks, 
-  CheckSquare, 
-  TrendingUp 
+  AlertTriangle, 
+  FileText, 
+  Percent 
 } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { MetricCard } from '@/components/dashboard/MetricCard';
@@ -32,33 +32,34 @@ export default function Dashboard() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <MetricCard
             title="Reuniões Agendadas"
-            value={metricsLoading ? '-' : upcomingMeetings.length}
-            subtitle="Próximos 30 dias"
+            value={metricsLoading ? '-' : metrics?.scheduledMeetings || 0}
+            subtitle="Futuras"
             icon={<Calendar className="w-6 h-6 text-accent" />}
             variant="accent"
           />
           <MetricCard
-            title="Pontos Pendentes"
-            value={metricsLoading ? '-' : metrics?.pendingAgendaPoints || 0}
-            subtitle="Aguardam decisão"
-            icon={<ListChecks className="w-6 h-6 text-state-proposed" />}
+            title="Ações Expiradas"
+            value={metricsLoading ? '-' : metrics?.expiredActions || 0}
+            subtitle="Follow-up em atraso"
+            icon={<AlertTriangle className="w-6 h-6 text-status-critical" />}
             variant="warning"
-          />
-          <MetricCard
-            title="Ações Ativas"
-            value={metricsLoading ? '-' : metrics?.activeActions || 0}
-            subtitle={`${metrics?.overdueActions || 0} em atraso`}
-            icon={<CheckSquare className="w-6 h-6 text-status-info" />}
-            trend={metrics?.overdueActions && metrics.overdueActions > 0 ? { 
-              value: metrics.overdueActions, 
+            trend={metrics?.expiredActions && metrics.expiredActions > 0 ? { 
+              value: metrics.expiredActions, 
               isPositive: false 
             } : undefined}
           />
           <MetricCard
-            title="Taxa de Conclusão"
-            value={metricsLoading ? '-' : `${metrics?.completionRate || 0}%`}
-            subtitle="Ações concluídas"
-            icon={<TrendingUp className="w-6 h-6 text-status-success" />}
+            title="Em Agendamento"
+            value={metricsLoading ? '-' : metrics?.agendaPointsInScheduling || 0}
+            subtitle="Pontos de agenda"
+            icon={<FileText className="w-6 h-6 text-state-proposed" />}
+            variant="warning"
+          />
+          <MetricCard
+            title="Decisões c/ Follow-up"
+            value={metricsLoading ? '-' : `${metrics?.decisionsWithFollowUpPercent || 0}%`}
+            subtitle="Com ações associadas"
+            icon={<Percent className="w-6 h-6 text-status-success" />}
             variant="success"
           />
         </div>
@@ -80,9 +81,9 @@ export default function Dashboard() {
               <h3 className="font-semibold text-foreground mb-4">Resumo</h3>
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Total reuniões</span>
+                  <span className="text-sm text-muted-foreground">Reuniões futuras</span>
                   <span className="text-sm font-semibold text-foreground">
-                    {metrics?.totalMeetings || 0}
+                    {upcomingMeetings.length}
                   </span>
                 </div>
                 <div className="flex items-center justify-between">

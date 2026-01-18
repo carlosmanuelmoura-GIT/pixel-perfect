@@ -1,10 +1,10 @@
 // Database types from Supabase schema
 export type MeetingType = 'CA' | 'CEAAP' | 'RT';
 export type MeetingStatus = 'Preparação' | 'Em Curso' | 'Concluída' | 'Publicada';
-export type AgendaPointStatus = 'Proposto' | 'Aprovado' | 'Em discussão' | 'Fechado' | 'Acompanhamento' | 'Encerrado';
-export type PointType = 'Informação' | 'Decisão' | 'Discussão';
+export type AgendaPointStatus = 'Em agendamento' | 'Agendado' | 'Deliberado';
+export type PointType = 'Informação' | 'Para Decisão';
 export type Priority = 'Alta' | 'Média' | 'Baixa';
-export type DecisionType = 'Estratégica' | 'Táctica' | 'Operacional';
+export type DecisionType = 'Estratégica' | 'Táctica' | 'Operacional' | 'Tomada de Conhecimento';
 export type Criticality = 'Crítica' | 'Importante' | 'Rotina';
 export type VoteMode = 'Unanimidade' | 'Votação' | 'Consenso';
 export type ActionStatus = 'Por iniciar' | 'Em curso' | 'Concluída' | 'Bloqueada' | 'Cancelada';
@@ -68,6 +68,7 @@ export interface AgendaPoint {
   proposer?: Administrator;
   pelouros?: Pelouro[];
   meeting?: Meeting;
+  decisions?: Decision[];
 }
 
 export interface Decision {
@@ -86,6 +87,7 @@ export interface Decision {
   created_at: string;
   updated_at: string;
   agenda_point?: AgendaPoint;
+  actions?: Action[];
 }
 
 export interface Action {
@@ -168,14 +170,12 @@ export interface UserRole {
   user_id: string;
   role: AppRole;
   created_at: string;
+  profile?: Profile;
 }
 
 export interface DashboardMetrics {
-  totalMeetings: number;
-  pendingAgendaPoints: number;
-  activeActions: number;
-  overdueActions: number;
-  completionRate: number;
-  upcomingMeetings: Meeting[];
-  recentDecisions: Decision[];
+  scheduledMeetings: number;
+  expiredActions: number;
+  agendaPointsInScheduling: number;
+  decisionsWithFollowUpPercent: number;
 }
