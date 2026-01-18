@@ -3,9 +3,6 @@ import { cn } from '@/lib/utils';
 import { 
   FileQuestion, 
   CheckCircle2, 
-  MessageSquare, 
-  FileCheck, 
-  Clock, 
   CheckCheck 
 } from 'lucide-react';
 
@@ -20,38 +17,20 @@ const statusConfig: Record<AgendaPointStatus, {
   color: string;
   bgColor: string;
 }> = {
-  'Proposto': { 
-    label: 'Proposto', 
+  'Em agendamento': { 
+    label: 'Em Agendamento', 
     icon: FileQuestion, 
     color: 'text-state-proposed',
     bgColor: 'bg-state-proposed/10' 
   },
-  'Aprovado': { 
-    label: 'Aprovado', 
+  'Agendado': { 
+    label: 'Agendado', 
     icon: CheckCircle2, 
     color: 'text-state-approved',
     bgColor: 'bg-state-approved/10' 
   },
-  'Em discussão': { 
-    label: 'Em Discussão', 
-    icon: MessageSquare, 
-    color: 'text-state-discussion',
-    bgColor: 'bg-state-discussion/10' 
-  },
-  'Fechado': { 
-    label: 'Fechado', 
-    icon: FileCheck, 
-    color: 'text-state-closed',
-    bgColor: 'bg-state-closed/10' 
-  },
-  'Acompanhamento': { 
-    label: 'Acompanhamento', 
-    icon: Clock, 
-    color: 'text-state-followUp',
-    bgColor: 'bg-state-followUp/10' 
-  },
-  'Encerrado': { 
-    label: 'Encerrado', 
+  'Deliberado': { 
+    label: 'Deliberado', 
     icon: CheckCheck, 
     color: 'text-state-completed',
     bgColor: 'bg-state-completed/10' 
@@ -68,8 +47,8 @@ export function AgendaPipeline({ points, isLoading }: AgendaPipelineProps) {
         </div>
         <div className="p-6">
           <div className="h-2 bg-muted rounded-full mb-6 animate-pulse" />
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-            {[1, 2, 3, 4, 5, 6].map((i) => (
+          <div className="grid grid-cols-3 gap-3">
+            {[1, 2, 3].map((i) => (
               <div key={i} className="h-16 bg-muted rounded-lg animate-pulse" />
             ))}
           </div>
@@ -113,7 +92,7 @@ export function AgendaPipeline({ points, isLoading }: AgendaPipelineProps) {
         </div>
 
         {/* Status Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+        <div className="grid grid-cols-3 gap-3">
           {Object.entries(statusConfig).map(([status, config], index) => {
             const count = statusCounts[status as AgendaPointStatus];
             const Icon = config.icon;
