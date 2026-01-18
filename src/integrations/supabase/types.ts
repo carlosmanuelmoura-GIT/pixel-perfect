@@ -628,13 +628,7 @@ export type Database = {
         | "Concluída"
         | "Bloqueada"
         | "Cancelada"
-      agenda_point_status:
-        | "Proposto"
-        | "Aprovado"
-        | "Em discussão"
-        | "Fechado"
-        | "Acompanhamento"
-        | "Encerrado"
+      agenda_point_status: "Em agendamento" | "Agendado" | "Deliberado"
       app_role: "admin" | "sec" | "gestao" | "leitor"
       attribute_type:
         | "text"
@@ -649,10 +643,14 @@ export type Database = {
         | "email"
         | "currency"
       criticality: "Crítica" | "Importante" | "Rotina"
-      decision_type: "Estratégica" | "Táctica" | "Operacional"
+      decision_type:
+        | "Estratégica"
+        | "Táctica"
+        | "Operacional"
+        | "Tomada de Conhecimento"
       meeting_status: "Preparação" | "Em Curso" | "Concluída" | "Publicada"
       meeting_type: "CA" | "CEAAP" | "RT"
-      point_type: "Informação" | "Decisão" | "Discussão"
+      point_type: "Informação" | "Para Decisão"
       priority: "Alta" | "Média" | "Baixa"
       vote_mode: "Unanimidade" | "Votação" | "Consenso"
     }
@@ -789,14 +787,7 @@ export const Constants = {
         "Bloqueada",
         "Cancelada",
       ],
-      agenda_point_status: [
-        "Proposto",
-        "Aprovado",
-        "Em discussão",
-        "Fechado",
-        "Acompanhamento",
-        "Encerrado",
-      ],
+      agenda_point_status: ["Em agendamento", "Agendado", "Deliberado"],
       app_role: ["admin", "sec", "gestao", "leitor"],
       attribute_type: [
         "text",
@@ -812,10 +803,15 @@ export const Constants = {
         "currency",
       ],
       criticality: ["Crítica", "Importante", "Rotina"],
-      decision_type: ["Estratégica", "Táctica", "Operacional"],
+      decision_type: [
+        "Estratégica",
+        "Táctica",
+        "Operacional",
+        "Tomada de Conhecimento",
+      ],
       meeting_status: ["Preparação", "Em Curso", "Concluída", "Publicada"],
       meeting_type: ["CA", "CEAAP", "RT"],
-      point_type: ["Informação", "Decisão", "Discussão"],
+      point_type: ["Informação", "Para Decisão"],
       priority: ["Alta", "Média", "Baixa"],
       vote_mode: ["Unanimidade", "Votação", "Consenso"],
     },
