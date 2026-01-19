@@ -642,7 +642,7 @@ export type Database = {
         | "url"
         | "email"
         | "currency"
-      criticality: "Crítica" | "Importante" | "Rotina"
+      criticality: "Crítica" | "Importante" | "Normal"
       decision_type:
         | "Estratégica"
         | "Táctica"
@@ -802,7 +802,7 @@ export const Constants = {
         "email",
         "currency",
       ],
-      criticality: ["Crítica", "Importante", "Rotina"],
+      criticality: ["Crítica", "Importante", "Normal"],
       decision_type: [
         "Estratégica",
         "Táctica",

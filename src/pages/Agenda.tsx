@@ -90,7 +90,7 @@ const pointTypeStyles: Record<PointType, { icon: typeof FileText; color: string 
 };
 
 const decisionTypes: DecisionType[] = ['Estratégica', 'Táctica', 'Operacional', 'Tomada de Conhecimento'];
-const criticalities: Criticality[] = ['Crítica', 'Importante', 'Rotina'];
+const criticalities: Criticality[] = ['Crítica', 'Importante', 'Normal'];
 const voteModes: VoteMode[] = ['Unanimidade', 'Votação', 'Consenso'];
 
 export default function Agenda() {
@@ -634,7 +634,7 @@ function DecisionForm({
   const [formData, setFormData] = useState({
     text: '',
     type: 'Operacional' as DecisionType,
-    criticality: 'Rotina' as Criticality,
+    criticality: 'Normal' as Criticality,
     vote_mode: 'Consenso' as VoteMode,
     deliberation: '',
     background: '',
@@ -654,7 +654,7 @@ function DecisionForm({
       setFormData({
         text: '',
         type: 'Operacional',
-        criticality: 'Rotina',
+        criticality: 'Normal',
         vote_mode: 'Consenso',
         deliberation: '',
         background: '',
