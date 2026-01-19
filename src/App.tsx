@@ -11,6 +11,7 @@ import Dashboard from "./pages/Dashboard";
 import Reunioes from "./pages/Reunioes";
 import Agenda from "./pages/Agenda";
 import Acoes from "./pages/Acoes";
+import Administradores from "./pages/Administradores";
 import Login from "./pages/Login";
 import Registar from "./pages/Registar";
 import Unauthorized from "./pages/Unauthorized";
@@ -61,6 +62,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <Acoes />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/administradores"
+              element={
+                <ProtectedRoute>
+                  <Administradores />
                 </ProtectedRoute>
               }
             />

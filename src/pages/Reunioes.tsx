@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { format } from 'date-fns';
 import { pt } from 'date-fns/locale';
 import { 
@@ -10,11 +10,15 @@ import {
   Users, 
   ChevronRight,
   MoreHorizontal,
-  Loader2
+  Loader2,
+  Pencil,
+  Trash2
 } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { 
   Select, 
   SelectContent, 
@@ -23,12 +27,36 @@ import {
   SelectValue 
 } from '@/components/ui/select';
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { useMeetings } from '@/hooks/useSupabaseData';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { 
+  useMeetings, 
+  useCreateMeeting, 
+  useUpdateMeeting, 
+  useDeleteMeeting,
+  useAdministrators 
+} from '@/hooks/useSupabaseData';
 import type { Meeting, MeetingStatus, MeetingType } from '@/types/database';
 import { cn } from '@/lib/utils';
 
@@ -51,16 +79,28 @@ const meetingTypeLabels: Record<MeetingType, string> = {
   RT: 'Reunião de Trabalho',
 };
 
+const meetingTypes: MeetingType[] = ['CA', 'CEAAP', 'RT'];
+const meetingStatuses: MeetingStatus[] = ['Preparação', 'Em Curso', 'Concluída', 'Publicada'];
+
 export default function Reunioes() {
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [editingMeeting, setEditingMeeting] = useState<Meeting | null>(null);
+  const [deleteMeeting, setDeleteMeeting] = useState<Meeting | null>(null);
+  
   const { data: meetings = [], isLoading } = useMeetings();
+  const createMeeting = useCreateMeeting();
+  const updateMeeting = useUpdateMeeting();
+  const deleteMeetingMutation = useDeleteMeeting();
 
-  const filteredMeetings = meetings.filter(meeting => {
-    if (typeFilter !== 'all' && meeting.type !== typeFilter) return false;
-    if (statusFilter !== 'all' && meeting.status !== statusFilter) return false;
-    return true;
-  });
+  const filteredMeetings = useMemo(() => {
+    return meetings.filter(meeting => {
+      if (typeFilter !== 'all' && meeting.type !== typeFilter) return false;
+      if (statusFilter !== 'all' && meeting.status !== statusFilter) return false;
+      return true;
+    });
+  }, [meetings, typeFilter, statusFilter]);
 
   const getParticipantNames = (participants?: Meeting['participants']) => {
     if (!participants) return '';
@@ -68,6 +108,23 @@ export default function Reunioes() {
       .map(p => p.administrator?.name)
       .filter(Boolean)
       .join(', ');
+  };
+
+  const handleCreate = () => {
+    setEditingMeeting(null);
+    setIsFormOpen(true);
+  };
+
+  const handleEdit = (meeting: Meeting) => {
+    setEditingMeeting(meeting);
+    setIsFormOpen(true);
+  };
+
+  const handleDelete = async () => {
+    if (deleteMeeting) {
+      await deleteMeetingMutation.mutateAsync(deleteMeeting.id);
+      setDeleteMeeting(null);
+    }
   };
 
   if (isLoading) {
@@ -112,7 +169,7 @@ export default function Reunioes() {
             </Select>
           </div>
 
-          <Button className="gap-2">
+          <Button className="gap-2" onClick={handleCreate}>
             <Plus className="w-4 h-4" />
             Nova Reunião
           </Button>
@@ -125,6 +182,8 @@ export default function Reunioes() {
               meeting={meeting}
               participantNames={getParticipantNames(meeting.participants)}
               index={index}
+              onEdit={() => handleEdit(meeting)}
+              onDelete={() => setDeleteMeeting(meeting)}
             />
           ))}
         </div>
@@ -139,7 +198,184 @@ export default function Reunioes() {
           </div>
         )}
       </div>
+
+      {/* Create/Edit Form */}
+      <MeetingForm
+        open={isFormOpen}
+        onOpenChange={setIsFormOpen}
+        meeting={editingMeeting}
+        onCreate={createMeeting.mutateAsync}
+        onUpdate={updateMeeting.mutateAsync}
+      />
+
+      {/* Delete Confirmation */}
+      <AlertDialog open={!!deleteMeeting} onOpenChange={(open) => !open && setDeleteMeeting(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Eliminar Reunião</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem a certeza que deseja eliminar esta reunião? Esta ação não pode ser revertida e irá eliminar todos os pontos de agenda associados.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AppLayout>
+  );
+}
+
+// Meeting Form Component
+function MeetingForm({
+  open,
+  onOpenChange,
+  meeting,
+  onCreate,
+  onUpdate,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  meeting: Meeting | null;
+  onCreate: (data: any) => Promise<any>;
+  onUpdate: (data: any) => Promise<any>;
+}) {
+  const [formData, setFormData] = useState({
+    date: '',
+    time: '',
+    type: 'CA' as MeetingType,
+    location: '',
+    status: 'Preparação' as MeetingStatus,
+  });
+
+  useMemo(() => {
+    if (meeting) {
+      const meetingDate = new Date(meeting.date);
+      setFormData({
+        date: format(meetingDate, 'yyyy-MM-dd'),
+        time: format(meetingDate, 'HH:mm'),
+        type: meeting.type,
+        location: meeting.location,
+        status: meeting.status,
+      });
+    } else {
+      setFormData({
+        date: format(new Date(), 'yyyy-MM-dd'),
+        time: '10:00',
+        type: 'CA',
+        location: '',
+        status: 'Preparação',
+      });
+    }
+  }, [meeting, open]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const dateTime = new Date(`${formData.date}T${formData.time}`).toISOString();
+    
+    if (meeting) {
+      await onUpdate({ 
+        id: meeting.id, 
+        date: dateTime,
+        type: formData.type,
+        location: formData.location,
+        status: formData.status,
+      });
+    } else {
+      await onCreate({ 
+        date: dateTime,
+        type: formData.type,
+        location: formData.location,
+        status: formData.status,
+      });
+    }
+    onOpenChange(false);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle>{meeting ? 'Editar Reunião' : 'Nova Reunião'}</DialogTitle>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="date">Data *</Label>
+              <Input
+                id="date"
+                type="date"
+                value={formData.date}
+                onChange={(e) => setFormData(f => ({ ...f, date: e.target.value }))}
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="time">Hora *</Label>
+              <Input
+                id="time"
+                type="time"
+                value={formData.time}
+                onChange={(e) => setFormData(f => ({ ...f, time: e.target.value }))}
+                required
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Tipo *</Label>
+              <Select value={formData.type} onValueChange={(v) => setFormData(f => ({ ...f, type: v as MeetingType }))}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {meetingTypes.map(t => (
+                    <SelectItem key={t} value={t}>{t} - {meetingTypeLabels[t]}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Estado</Label>
+              <Select value={formData.status} onValueChange={(v) => setFormData(f => ({ ...f, status: v as MeetingStatus }))}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {meetingStatuses.map(s => (
+                    <SelectItem key={s} value={s}>{s}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="location">Local *</Label>
+            <Input
+              id="location"
+              value={formData.location}
+              onChange={(e) => setFormData(f => ({ ...f, location: e.target.value }))}
+              placeholder="Ex: Sala de Reuniões Principal"
+              required
+            />
+          </div>
+
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              Cancelar
+            </Button>
+            <Button type="submit">
+              {meeting ? 'Atualizar' : 'Criar'}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -147,9 +383,11 @@ interface MeetingCardProps {
   meeting: Meeting;
   participantNames: string;
   index: number;
+  onEdit: () => void;
+  onDelete: () => void;
 }
 
-function MeetingCard({ meeting, participantNames, index }: MeetingCardProps) {
+function MeetingCard({ meeting, participantNames, index, onEdit, onDelete }: MeetingCardProps) {
   const date = new Date(meeting.date);
   
   return (
@@ -228,10 +466,17 @@ function MeetingCard({ meeting, participantNames, index }: MeetingCardProps) {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem>Editar</DropdownMenuItem>
+              <DropdownMenuItem onClick={onEdit}>
+                <Pencil className="w-4 h-4 mr-2" />
+                Editar
+              </DropdownMenuItem>
               <DropdownMenuItem>Duplicar</DropdownMenuItem>
               <DropdownMenuItem>Exportar Ata</DropdownMenuItem>
-              <DropdownMenuItem className="text-destructive">Eliminar</DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem className="text-destructive" onClick={onDelete}>
+                <Trash2 className="w-4 h-4 mr-2" />
+                Eliminar
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
           <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-foreground transition-colors" />

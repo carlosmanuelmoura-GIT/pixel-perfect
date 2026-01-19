@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { format, differenceInDays } from 'date-fns';
 import { pt } from 'date-fns/locale';
 import { 
@@ -11,12 +11,18 @@ import {
   XCircle,
   MoreHorizontal,
   User,
-  Loader2
+  Loader2,
+  Pencil,
+  Trash2
 } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Slider } from '@/components/ui/slider';
 import { 
   Select, 
   SelectContent, 
@@ -25,13 +31,39 @@ import {
   SelectValue 
 } from '@/components/ui/select';
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { useActions, usePelouros } from '@/hooks/useSupabaseData';
-import type { Action, ActionStatus, Criticality } from '@/types/database';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { 
+  useActions, 
+  usePelouros, 
+  useAdministrators,
+  useDecisions,
+  useCreateAction,
+  useUpdateAction,
+  useDeleteAction
+} from '@/hooks/useSupabaseData';
+import type { Action, ActionStatus, Criticality, Decision } from '@/types/database';
 import { cn } from '@/lib/utils';
 
 const statusConfig: Record<ActionStatus, {
@@ -50,24 +82,55 @@ const statusConfig: Record<ActionStatus, {
 const criticalityStyles: Record<Criticality, string> = {
   'Crítica': 'bg-status-critical/10 text-status-critical border-status-critical/20',
   'Importante': 'bg-status-warning/10 text-status-warning border-status-warning/20',
-  'Rotina': 'bg-muted text-muted-foreground border-border',
+  'Normal': 'bg-muted text-muted-foreground border-border',
 };
 
 const kanbanColumns: ActionStatus[] = ['Por iniciar', 'Em curso', 'Concluída'];
+const actionStatuses: ActionStatus[] = ['Por iniciar', 'Em curso', 'Concluída', 'Bloqueada', 'Cancelada'];
+const criticalities: Criticality[] = ['Crítica', 'Importante', 'Normal'];
 
 export default function Acoes() {
   const [pelouroFilter, setPelouroFilter] = useState<string>('all');
   const [viewMode, setViewMode] = useState<'kanban' | 'list'>('kanban');
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [editingAction, setEditingAction] = useState<Action | null>(null);
+  const [deleteAction, setDeleteAction] = useState<Action | null>(null);
+  
   const { data: actions = [], isLoading } = useActions();
   const { data: pelouros = [] } = usePelouros();
+  const { data: administrators = [] } = useAdministrators();
+  const { data: decisions = [] } = useDecisions();
+  
+  const createAction = useCreateAction();
+  const updateAction = useUpdateAction();
+  const deleteActionMutation = useDeleteAction();
 
-  const filteredActions = actions.filter(action => {
-    if (pelouroFilter !== 'all' && action.pelouro?.id !== pelouroFilter) return false;
-    return true;
-  });
+  const filteredActions = useMemo(() => {
+    return actions.filter(action => {
+      if (pelouroFilter !== 'all' && action.pelouro?.id !== pelouroFilter) return false;
+      return true;
+    });
+  }, [actions, pelouroFilter]);
 
   const getActionsByStatus = (status: ActionStatus) => 
     filteredActions.filter(a => a.status === status);
+
+  const handleCreate = () => {
+    setEditingAction(null);
+    setIsFormOpen(true);
+  };
+
+  const handleEdit = (action: Action) => {
+    setEditingAction(action);
+    setIsFormOpen(true);
+  };
+
+  const handleDelete = async () => {
+    if (deleteAction) {
+      await deleteActionMutation.mutateAsync(deleteAction.id);
+      setDeleteAction(null);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -117,7 +180,7 @@ export default function Acoes() {
             </div>
           </div>
 
-          <Button className="gap-2">
+          <Button className="gap-2" onClick={handleCreate}>
             <Plus className="w-4 h-4" />
             Nova Ação
           </Button>
@@ -141,7 +204,13 @@ export default function Acoes() {
                   
                   <div className="space-y-3">
                     {columnActions.map((action, index) => (
-                      <ActionCard key={action.id} action={action} index={index} />
+                      <ActionCard 
+                        key={action.id} 
+                        action={action} 
+                        index={index}
+                        onEdit={() => handleEdit(action)}
+                        onDelete={() => setDeleteAction(action)}
+                      />
                     ))}
                     
                     {columnActions.length === 0 && (
@@ -160,17 +229,272 @@ export default function Acoes() {
           <div className="bg-card rounded-xl border border-border/50 shadow-card overflow-hidden">
             <div className="divide-y divide-border/50">
               {filteredActions.map((action, index) => (
-                <ActionRow key={action.id} action={action} index={index} />
+                <ActionRow 
+                  key={action.id} 
+                  action={action} 
+                  index={index}
+                  onEdit={() => handleEdit(action)}
+                  onDelete={() => setDeleteAction(action)}
+                />
               ))}
             </div>
           </div>
         )}
       </div>
+
+      {/* Create/Edit Form */}
+      <ActionForm
+        open={isFormOpen}
+        onOpenChange={setIsFormOpen}
+        action={editingAction}
+        decisions={decisions}
+        administrators={administrators}
+        pelouros={pelouros}
+        onCreate={createAction.mutateAsync}
+        onUpdate={updateAction.mutateAsync}
+      />
+
+      {/* Delete Confirmation */}
+      <AlertDialog open={!!deleteAction} onOpenChange={(open) => !open && setDeleteAction(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Eliminar Ação</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem a certeza que deseja eliminar esta ação? Esta ação não pode ser revertida.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AppLayout>
   );
 }
 
-function ActionCard({ action, index }: { action: Action; index: number }) {
+// Action Form Component
+function ActionForm({
+  open,
+  onOpenChange,
+  action,
+  decisions,
+  administrators,
+  pelouros,
+  onCreate,
+  onUpdate,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  action: Action | null;
+  decisions: Decision[];
+  administrators: any[];
+  pelouros: any[];
+  onCreate: (data: any) => Promise<any>;
+  onUpdate: (data: any) => Promise<any>;
+}) {
+  const [formData, setFormData] = useState({
+    decision_id: '',
+    description: '',
+    responsible_id: '',
+    pelouro_id: '',
+    start_date: format(new Date(), 'yyyy-MM-dd'),
+    deadline: '',
+    status: 'Por iniciar' as ActionStatus,
+    progress: 0,
+    criticality: 'Normal' as Criticality,
+  });
+
+  useMemo(() => {
+    if (action) {
+      setFormData({
+        decision_id: action.decision_id,
+        description: action.description,
+        responsible_id: action.responsible_id || '',
+        pelouro_id: action.pelouro_id || '',
+        start_date: format(new Date(action.start_date), 'yyyy-MM-dd'),
+        deadline: format(new Date(action.deadline), 'yyyy-MM-dd'),
+        status: action.status,
+        progress: action.progress,
+        criticality: action.criticality,
+      });
+    } else {
+      setFormData({
+        decision_id: decisions[0]?.id || '',
+        description: '',
+        responsible_id: '',
+        pelouro_id: '',
+        start_date: format(new Date(), 'yyyy-MM-dd'),
+        deadline: '',
+        status: 'Por iniciar',
+        progress: 0,
+        criticality: 'Normal',
+      });
+    }
+  }, [action, open, decisions]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    const data = {
+      ...formData,
+      start_date: new Date(formData.start_date).toISOString(),
+      deadline: new Date(formData.deadline).toISOString(),
+      responsible_id: formData.responsible_id || null,
+      pelouro_id: formData.pelouro_id || null,
+    };
+    
+    if (action) {
+      await onUpdate({ id: action.id, ...data });
+    } else {
+      await onCreate(data);
+    }
+    onOpenChange(false);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle>{action ? 'Editar Ação' : 'Nova Ação'}</DialogTitle>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="decision_id">Decisão Associada *</Label>
+            <Select value={formData.decision_id} onValueChange={(v) => setFormData(f => ({ ...f, decision_id: v }))}>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione a decisão" />
+              </SelectTrigger>
+              <SelectContent>
+                {decisions.map(d => (
+                  <SelectItem key={d.id} value={d.id}>
+                    {d.text.substring(0, 60)}...
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="description">Descrição *</Label>
+            <Textarea
+              id="description"
+              value={formData.description}
+              onChange={(e) => setFormData(f => ({ ...f, description: e.target.value }))}
+              required
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Responsável</Label>
+              <Select value={formData.responsible_id} onValueChange={(v) => setFormData(f => ({ ...f, responsible_id: v }))}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione" />
+                </SelectTrigger>
+                <SelectContent>
+                  {administrators.map(a => (
+                    <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Pelouro</Label>
+              <Select value={formData.pelouro_id} onValueChange={(v) => setFormData(f => ({ ...f, pelouro_id: v }))}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione" />
+                </SelectTrigger>
+                <SelectContent>
+                  {pelouros.map(p => (
+                    <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="start_date">Data Início</Label>
+              <Input
+                id="start_date"
+                type="date"
+                value={formData.start_date}
+                onChange={(e) => setFormData(f => ({ ...f, start_date: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="deadline">Prazo *</Label>
+              <Input
+                id="deadline"
+                type="date"
+                value={formData.deadline}
+                onChange={(e) => setFormData(f => ({ ...f, deadline: e.target.value }))}
+                required
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Estado</Label>
+              <Select value={formData.status} onValueChange={(v) => setFormData(f => ({ ...f, status: v as ActionStatus }))}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {actionStatuses.map(s => (
+                    <SelectItem key={s} value={s}>{s}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Criticidade</Label>
+              <Select value={formData.criticality} onValueChange={(v) => setFormData(f => ({ ...f, criticality: v as Criticality }))}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {criticalities.map(c => (
+                    <SelectItem key={c} value={c}>{c}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <div className="flex justify-between">
+              <Label>Progresso</Label>
+              <span className="text-sm text-muted-foreground">{formData.progress}%</span>
+            </div>
+            <Slider
+              value={[formData.progress]}
+              onValueChange={([v]) => setFormData(f => ({ ...f, progress: v }))}
+              max={100}
+              step={5}
+            />
+          </div>
+
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              Cancelar
+            </Button>
+            <Button type="submit">
+              {action ? 'Atualizar' : 'Criar'}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function ActionCard({ action, index, onEdit, onDelete }: { action: Action; index: number; onEdit: () => void; onDelete: () => void }) {
   const now = new Date();
   const deadline = new Date(action.deadline);
   const daysUntilDeadline = differenceInDays(deadline, now);
@@ -218,9 +542,17 @@ function ActionCard({ action, index }: { action: Action; index: number }) {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuItem>Editar</DropdownMenuItem>
+            <DropdownMenuItem onClick={onEdit}>
+              <Pencil className="w-4 h-4 mr-2" />
+              Editar
+            </DropdownMenuItem>
             <DropdownMenuItem>Atualizar Progresso</DropdownMenuItem>
             <DropdownMenuItem>Ver Decisão</DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem className="text-destructive" onClick={onDelete}>
+              <Trash2 className="w-4 h-4 mr-2" />
+              Eliminar
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
@@ -228,7 +560,7 @@ function ActionCard({ action, index }: { action: Action; index: number }) {
   );
 }
 
-function ActionRow({ action, index }: { action: Action; index: number }) {
+function ActionRow({ action, index, onEdit, onDelete }: { action: Action; index: number; onEdit: () => void; onDelete: () => void }) {
   const now = new Date();
   const deadline = new Date(action.deadline);
   const daysUntilDeadline = differenceInDays(deadline, now);
@@ -261,9 +593,17 @@ function ActionRow({ action, index }: { action: Action; index: number }) {
               <Button variant="ghost" size="icon" className="h-8 w-8"><MoreHorizontal className="w-4 h-4" /></Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem>Editar</DropdownMenuItem>
+              <DropdownMenuItem onClick={onEdit}>
+                <Pencil className="w-4 h-4 mr-2" />
+                Editar
+              </DropdownMenuItem>
               <DropdownMenuItem>Atualizar Progresso</DropdownMenuItem>
               <DropdownMenuItem>Ver Decisão</DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem className="text-destructive" onClick={onDelete}>
+                <Trash2 className="w-4 h-4 mr-2" />
+                Eliminar
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
