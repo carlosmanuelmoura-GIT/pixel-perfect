@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { format } from 'date-fns';
 import { pt } from 'date-fns/locale';
 import { 
@@ -111,6 +112,7 @@ const criticalities: Criticality[] = ['Crítica', 'Importante', 'Normal'];
 const voteModes: VoteMode[] = ['Unanimidade', 'Votação', 'Consenso'];
 
 export default function Agenda() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [meetingFilter, setMeetingFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [selectedPoint, setSelectedPoint] = useState<AgendaPoint | null>(null);
@@ -126,6 +128,19 @@ export default function Agenda() {
   const createPoint = useCreateAgendaPoint();
   const updatePoint = useUpdateAgendaPoint();
   const deletePointMutation = useDeleteAgendaPoint();
+
+  // Handle URL query parameter for direct point navigation
+  useEffect(() => {
+    const pointId = searchParams.get('point');
+    if (pointId && agendaPoints.length > 0) {
+      const point = agendaPoints.find(p => p.id === pointId);
+      if (point) {
+        setSelectedPoint(point);
+        // Clear the URL param after opening
+        setSearchParams({});
+      }
+    }
+  }, [searchParams, agendaPoints, setSearchParams]);
 
   const filteredPoints = useMemo(() => {
     return agendaPoints.filter(point => {

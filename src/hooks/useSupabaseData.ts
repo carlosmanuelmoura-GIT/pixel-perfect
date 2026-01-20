@@ -569,7 +569,6 @@ export function useActions(decisionId?: string) {
         .from('actions')
         .select(`
           *,
-          responsible:administrators(*),
           pelouro:pelouros(*),
           decision:decisions(
             *,
@@ -599,7 +598,7 @@ export function useCreateAction() {
     mutationFn: async (action: { 
       decision_id: string;
       description: string;
-      responsible_id?: string;
+      responsible_name?: string;
       pelouro_id?: string;
       start_date?: string;
       deadline: string;
@@ -633,7 +632,7 @@ export function useUpdateAction() {
     mutationFn: async ({ id, ...updates }: { 
       id: string; 
       description?: string;
-      responsible_id?: string;
+      responsible_name?: string;
       pelouro_id?: string;
       start_date?: string;
       deadline?: string;

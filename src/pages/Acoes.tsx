@@ -303,7 +303,7 @@ function ActionForm({
   const [formData, setFormData] = useState({
     decision_id: '',
     description: '',
-    responsible_id: '',
+    responsible_name: '',
     pelouro_id: '',
     start_date: format(new Date(), 'yyyy-MM-dd'),
     deadline: '',
@@ -313,12 +313,18 @@ function ActionForm({
   });
   const [activeTab, setActiveTab] = useState('form');
 
+  // Only show decisions marked for follow-up
+  const followUpDecisions = useMemo(() => 
+    decisions.filter(d => d.has_followup), 
+    [decisions]
+  );
+
   useMemo(() => {
     if (action) {
       setFormData({
         decision_id: action.decision_id,
         description: action.description,
-        responsible_id: action.responsible_id || '',
+        responsible_name: action.responsible_name || '',
         pelouro_id: action.pelouro_id || '',
         start_date: format(new Date(action.start_date), 'yyyy-MM-dd'),
         deadline: format(new Date(action.deadline), 'yyyy-MM-dd'),
@@ -328,9 +334,9 @@ function ActionForm({
       });
     } else {
       setFormData({
-        decision_id: decisions[0]?.id || '',
+        decision_id: followUpDecisions[0]?.id || '',
         description: '',
-        responsible_id: '',
+        responsible_name: '',
         pelouro_id: '',
         start_date: format(new Date(), 'yyyy-MM-dd'),
         deadline: '',
@@ -339,7 +345,7 @@ function ActionForm({
         criticality: 'Normal',
       });
     }
-  }, [action, open, decisions]);
+  }, [action, open, followUpDecisions]);
 
   const selectedDecision = decisions.find(d => d.id === formData.decision_id);
 
@@ -350,7 +356,7 @@ function ActionForm({
       ...formData,
       start_date: new Date(formData.start_date).toISOString(),
       deadline: new Date(formData.deadline).toISOString(),
-      responsible_id: formData.responsible_id || null,
+      responsible_name: formData.responsible_name || null,
       pelouro_id: formData.pelouro_id || null,
     };
     
@@ -379,18 +385,24 @@ function ActionForm({
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="decision_id">Decisão Associada *</Label>
-                <Select value={formData.decision_id} onValueChange={(v) => setFormData(f => ({ ...f, decision_id: v }))}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione a decisão" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {decisions.map(d => (
-                      <SelectItem key={d.id} value={d.id}>
-                        {d.text.substring(0, 60)}...
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                {followUpDecisions.length === 0 ? (
+                  <div className="p-3 border rounded-md bg-muted/50 text-sm text-muted-foreground">
+                    Nenhuma decisão marcada para follow-up. Marque decisões como "Para Follow-up" nos pontos de agenda primeiro.
+                  </div>
+                ) : (
+                  <Select value={formData.decision_id} onValueChange={(v) => setFormData(f => ({ ...f, decision_id: v }))}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione a decisão" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {followUpDecisions.map(d => (
+                        <SelectItem key={d.id} value={d.id}>
+                          {d.text.substring(0, 60)}...
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -405,25 +417,14 @@ function ActionForm({
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>Pessoa Responsável *</Label>
-                  <Select value={formData.responsible_id} onValueChange={(v) => setFormData(f => ({ ...f, responsible_id: v }))}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione a pessoa" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {administrators.map(a => {
-                        const adminPelouros = a.administrator_pelouros?.map((ap: any) => ap.pelouro?.name).filter(Boolean).join(', ');
-                        return (
-                          <SelectItem key={a.id} value={a.id}>
-                            <div className="flex flex-col">
-                              <span>{a.name}</span>
-                              {adminPelouros && <span className="text-xs text-muted-foreground">{adminPelouros}</span>}
-                            </div>
-                          </SelectItem>
-                        );
-                      })}
-                    </SelectContent>
-                  </Select>
+                  <Label htmlFor="responsible_name">Pessoa Responsável *</Label>
+                  <Input
+                    id="responsible_name"
+                    value={formData.responsible_name}
+                    onChange={(e) => setFormData(f => ({ ...f, responsible_name: e.target.value }))}
+                    placeholder="Nome da pessoa responsável"
+                    required
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label>Departamento *</Label>
@@ -593,7 +594,7 @@ function ActionCard({ action, index, onEdit, onDelete }: { action: Action; index
       <div className="space-y-3">
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
           <User className="w-3.5 h-3.5" />
-          <span>{action.responsible?.name || 'Sem responsável'}</span>
+          <span>{action.responsible_name || 'Sem responsável'}</span>
         </div>
         
         <span className={cn("text-xs", isOverdue && "text-status-critical font-medium", isUrgent && "text-status-warning font-medium", !isOverdue && !isUrgent && "text-muted-foreground")}>
@@ -609,7 +610,7 @@ function ActionCard({ action, index, onEdit, onDelete }: { action: Action; index
       </div>
       
       <div className="mt-3 pt-3 border-t border-border/50 flex items-center justify-between">
-        <Badge variant="secondary" className="text-xs">{action.pelouro?.name || 'Sem pelouro'}</Badge>
+        <Badge variant="secondary" className="text-xs">{action.pelouro?.name || 'Sem departamento'}</Badge>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon" className="h-7 w-7">
@@ -653,9 +654,9 @@ function ActionRow({ action, index, onEdit, onDelete }: { action: Action; index:
         <div className="flex-1 min-w-0">
           <p className="text-sm font-medium text-foreground truncate">{action.description}</p>
           <div className="flex items-center gap-4 mt-1 text-xs text-muted-foreground">
-            <span>{action.responsible?.name || 'Sem responsável'}</span>
+            <span>{action.responsible_name || 'Sem responsável'}</span>
             <span>•</span>
-            <span>{action.pelouro?.name || 'Sem pelouro'}</span>
+            <span>{action.pelouro?.name || 'Sem departamento'}</span>
           </div>
         </div>
         

@@ -105,6 +105,7 @@ export interface Action {
   decision_id: string;
   description: string;
   responsible_id: string | null;
+  responsible_name: string | null;
   pelouro_id: string | null;
   start_date: string;
   deadline: string;
@@ -113,7 +114,6 @@ export interface Action {
   criticality: Criticality;
   created_at: string;
   updated_at: string;
-  responsible?: Administrator;
   pelouro?: Pelouro;
   decision?: Decision;
 }
