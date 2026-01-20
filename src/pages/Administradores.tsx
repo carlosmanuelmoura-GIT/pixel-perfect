@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { 
   Users, 
   Plus, 
@@ -281,7 +281,7 @@ function AdministratorForm({
   });
   const [selectedPelouros, setSelectedPelouros] = useState<string[]>([]);
 
-  useMemo(() => {
+  useEffect(() => {
     if (administrator) {
       setFormData({
         name: administrator.name,
