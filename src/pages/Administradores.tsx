@@ -92,7 +92,7 @@ export default function Administradores() {
           </TabsTrigger>
           <TabsTrigger value="pelouros" className="gap-2">
             <Briefcase className="w-4 h-4" />
-            Pelouros
+            Departamentos
           </TabsTrigger>
         </TabsList>
 
@@ -520,12 +520,12 @@ function PelourosTab() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h3 className="text-lg font-semibold">Pelouros</h3>
-          <p className="text-sm text-muted-foreground">Gestão dos pelouros da organização</p>
+          <h3 className="text-lg font-semibold">Departamentos</h3>
+          <p className="text-sm text-muted-foreground">Gestão dos departamentos da organização</p>
         </div>
         <Button onClick={handleCreate} className="gap-2">
           <Plus className="w-4 h-4" />
-          Novo Pelouro
+          Novo Departamento
         </Button>
       </div>
 
@@ -572,7 +572,7 @@ function PelourosTab() {
       {pelouros.length === 0 && (
         <div className="text-center py-12 text-muted-foreground">
           <Briefcase className="w-12 h-12 mx-auto mb-4 opacity-50" />
-          <p>Nenhum pelouro encontrado</p>
+          <p>Nenhum departamento encontrado</p>
         </div>
       )}
 
@@ -589,7 +589,7 @@ function PelourosTab() {
       <AlertDialog open={!!deletePelouro} onOpenChange={(open) => !open && setDeletePelouro(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Eliminar Pelouro</AlertDialogTitle>
+            <AlertDialogTitle>Eliminar Departamento</AlertDialogTitle>
             <AlertDialogDescription>
               Tem a certeza que deseja eliminar "{deletePelouro?.name}"? Esta ação não pode ser revertida.
             </AlertDialogDescription>
@@ -624,7 +624,7 @@ function PelouroForm({
     description: '',
   });
 
-  useMemo(() => {
+  useEffect(() => {
     if (pelouro) {
       setFormData({
         name: pelouro.name,
@@ -652,7 +652,7 @@ function PelouroForm({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>{pelouro ? 'Editar Pelouro' : 'Novo Pelouro'}</DialogTitle>
+          <DialogTitle>{pelouro ? 'Editar Departamento' : 'Novo Departamento'}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">

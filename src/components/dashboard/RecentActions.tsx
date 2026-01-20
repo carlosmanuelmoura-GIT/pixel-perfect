@@ -100,7 +100,7 @@ export function RecentActions({ actions, isLoading, onActionClick }: RecentActio
                     
                     <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
                       <span className="flex items-center gap-1">
-                        {action.responsible?.name || 'Sem responsável'}
+                        {action.responsible_name || 'Sem responsável'}
                       </span>
                       {action.pelouro && (
                         <>

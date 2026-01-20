@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { pt } from 'date-fns/locale';
 import { 
@@ -291,8 +292,14 @@ export default function Reunioes() {
 
 // Meeting Detail Dialog with Tabs
 function MeetingDetailDialog({ meeting, onClose }: { meeting: Meeting | null; onClose: () => void }) {
+  const navigate = useNavigate();
   const { data: agendaPoints = [], isLoading } = useAgendaPoints(meeting?.id);
   const [activeTab, setActiveTab] = useState('dados');
+
+  const handleAgendaPointClick = (pointId: string) => {
+    onClose();
+    navigate(`/agenda?point=${pointId}`);
+  };
 
   if (!meeting) return null;
 
@@ -352,12 +359,20 @@ function MeetingDetailDialog({ meeting, onClose }: { meeting: Meeting | null; on
             ) : (
               <div className="space-y-2">
                 {agendaPoints.map((point) => (
-                  <div key={point.id} className={cn("p-3 border rounded-lg", point.is_confidential && "border-l-2 border-l-status-warning")}>
+                  <div 
+                    key={point.id} 
+                    className={cn(
+                      "p-3 border rounded-lg cursor-pointer hover:bg-muted/50 transition-colors",
+                      point.is_confidential && "border-l-2 border-l-status-warning"
+                    )}
+                    onClick={() => handleAgendaPointClick(point.id)}
+                  >
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-medium text-muted-foreground w-6">{point.order}</span>
                       {point.is_confidential && <Lock className="w-3.5 h-3.5 text-status-warning" />}
                       <span className="font-medium text-foreground">{point.title}</span>
-                      <Badge variant="outline" className="ml-auto text-xs">{point.status}</Badge>
+                      <ChevronRight className="w-4 h-4 text-muted-foreground ml-auto" />
+                      <Badge variant="outline" className="text-xs">{point.status}</Badge>
                     </div>
                     <p className="text-sm text-muted-foreground ml-6 mt-1">{point.subject}</p>
                   </div>

@@ -25,6 +25,7 @@ export type Database = {
           pelouro_id: string | null
           progress: number
           responsible_id: string | null
+          responsible_name: string | null
           start_date: string
           status: Database["public"]["Enums"]["action_status"]
           updated_at: string
@@ -39,6 +40,7 @@ export type Database = {
           pelouro_id?: string | null
           progress?: number
           responsible_id?: string | null
+          responsible_name?: string | null
           start_date?: string
           status?: Database["public"]["Enums"]["action_status"]
           updated_at?: string
@@ -53,6 +55,7 @@ export type Database = {
           pelouro_id?: string | null
           progress?: number
           responsible_id?: string | null
+          responsible_name?: string | null
           start_date?: string
           status?: Database["public"]["Enums"]["action_status"]
           updated_at?: string
@@ -70,13 +73,6 @@ export type Database = {
             columns: ["pelouro_id"]
             isOneToOne: false
             referencedRelation: "pelouros"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "actions_responsible_id_fkey"
-            columns: ["responsible_id"]
-            isOneToOne: false
-            referencedRelation: "administrators"
             referencedColumns: ["id"]
           },
         ]
