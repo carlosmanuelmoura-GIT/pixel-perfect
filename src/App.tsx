@@ -11,6 +11,7 @@ import Dashboard from "./pages/Dashboard";
 import Reunioes from "./pages/Reunioes";
 import Agenda from "./pages/Agenda";
 import Acoes from "./pages/Acoes";
+import Indicadores from "./pages/Indicadores";
 import Administradores from "./pages/Administradores";
 import Login from "./pages/Login";
 import Registar from "./pages/Registar";
@@ -62,6 +63,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <Acoes />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/indicadores"
+              element={
+                <ProtectedRoute>
+                  <Indicadores />
                 </ProtectedRoute>
               }
             />

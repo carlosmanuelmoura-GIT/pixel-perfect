@@ -6,7 +6,6 @@ import {
   ListChecks, 
   CheckSquare, 
   BarChart3, 
-  Settings,
   ChevronLeft,
   ChevronRight,
   Users,
@@ -29,8 +28,7 @@ const navItems: NavItem[] = [
 ];
 
 const bottomItems: NavItem[] = [
-  { icon: Users, label: 'Administradores', path: '/administradores' },
-  { icon: Settings, label: 'Configurações', path: '/configuracoes' },
+  { icon: Users, label: 'Administração', path: '/administradores' },
 ];
 
 export function Sidebar() {

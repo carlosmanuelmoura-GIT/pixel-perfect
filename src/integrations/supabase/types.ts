@@ -201,6 +201,59 @@ export type Database = {
           },
         ]
       }
+      agenda_point_extra_data: {
+        Row: {
+          agenda_point_id: string
+          created_at: string
+          id: string
+          motivo_ausencia_dcm: string | null
+          motivo_ausencia_dep: string | null
+          motivo_ausencia_mca: string | null
+          observacoes: string | null
+          precedentes: string | null
+          presenca_dcm: boolean | null
+          presenca_dep: boolean | null
+          presenca_mca: boolean | null
+          updated_at: string
+        }
+        Insert: {
+          agenda_point_id: string
+          created_at?: string
+          id?: string
+          motivo_ausencia_dcm?: string | null
+          motivo_ausencia_dep?: string | null
+          motivo_ausencia_mca?: string | null
+          observacoes?: string | null
+          precedentes?: string | null
+          presenca_dcm?: boolean | null
+          presenca_dep?: boolean | null
+          presenca_mca?: boolean | null
+          updated_at?: string
+        }
+        Update: {
+          agenda_point_id?: string
+          created_at?: string
+          id?: string
+          motivo_ausencia_dcm?: string | null
+          motivo_ausencia_dep?: string | null
+          motivo_ausencia_mca?: string | null
+          observacoes?: string | null
+          precedentes?: string | null
+          presenca_dcm?: boolean | null
+          presenca_dep?: boolean | null
+          presenca_mca?: boolean | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agenda_point_extra_data_agenda_point_id_fkey"
+            columns: ["agenda_point_id"]
+            isOneToOne: true
+            referencedRelation: "agenda_points"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       agenda_point_pelouros: {
         Row: {
           agenda_point_id: string
@@ -404,6 +457,7 @@ export type Database = {
           criticality: Database["public"]["Enums"]["criticality"]
           date: string
           deliberation: string | null
+          has_followup: boolean
           id: string
           text: string
           type: Database["public"]["Enums"]["decision_type"]
@@ -420,6 +474,7 @@ export type Database = {
           criticality?: Database["public"]["Enums"]["criticality"]
           date?: string
           deliberation?: string | null
+          has_followup?: boolean
           id?: string
           text: string
           type?: Database["public"]["Enums"]["decision_type"]
@@ -436,6 +491,7 @@ export type Database = {
           criticality?: Database["public"]["Enums"]["criticality"]
           date?: string
           deliberation?: string | null
+          has_followup?: boolean
           id?: string
           text?: string
           type?: Database["public"]["Enums"]["decision_type"]
