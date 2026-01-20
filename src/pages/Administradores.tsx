@@ -355,19 +355,24 @@ function AdministratorForm({
             <Label>Pelouro(s)</Label>
             <p className="text-xs text-muted-foreground mb-2">Selecione os pelouros associados a este administrador</p>
             <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto border rounded-md p-2">
-              {pelouros.map((pelouro) => (
-                <div 
-                  key={pelouro.id}
-                  className={cn(
-                    "flex items-center gap-2 p-2 rounded cursor-pointer transition-colors",
-                    selectedPelouros.includes(pelouro.id) ? "bg-primary/10" : "hover:bg-muted"
-                  )}
-                  onClick={() => handleTogglePelouro(pelouro.id)}
-                >
-                  <Checkbox checked={selectedPelouros.includes(pelouro.id)} />
-                  <span className="text-sm">{pelouro.name}</span>
-                </div>
-              ))}
+              {pelouros.map((pelouro) => {
+                const isSelected = selectedPelouros.includes(pelouro.id);
+                return (
+                  <label 
+                    key={pelouro.id}
+                    className={cn(
+                      "flex items-center gap-2 p-2 rounded cursor-pointer transition-colors",
+                      isSelected ? "bg-primary/10" : "hover:bg-muted"
+                    )}
+                  >
+                    <Checkbox 
+                      checked={isSelected}
+                      onCheckedChange={() => handleTogglePelouro(pelouro.id)}
+                    />
+                    <span className="text-sm">{pelouro.name}</span>
+                  </label>
+                );
+              })}
             </div>
           </div>
           <DialogFooter>
