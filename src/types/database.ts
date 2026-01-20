@@ -17,6 +17,14 @@ export interface Pelouro {
   created_at: string;
 }
 
+export interface AdministratorPelouro {
+  id: string;
+  administrator_id: string;
+  pelouro_id: string;
+  created_at: string;
+  pelouro?: Pelouro;
+}
+
 export interface Administrator {
   id: string;
   user_id: string | null;
@@ -26,6 +34,7 @@ export interface Administrator {
   created_at: string;
   updated_at: string;
   pelouros?: Pelouro[];
+  administrator_pelouros?: AdministratorPelouro[];
 }
 
 export interface Meeting {
@@ -84,6 +93,7 @@ export interface Decision {
   abstentions: number | null;
   background: string | null;
   deliberation: string | null;
+  has_followup: boolean;
   created_at: string;
   updated_at: string;
   agenda_point?: AgendaPoint;
@@ -154,6 +164,21 @@ export interface AgendaPointAttribute {
   attribute_definition?: AttributeDefinition;
 }
 
+export interface AgendaPointExtraData {
+  id: string;
+  agenda_point_id: string;
+  precedentes: string | null;
+  observacoes: string | null;
+  presenca_mca: boolean;
+  motivo_ausencia_mca: string | null;
+  presenca_dcm: boolean;
+  motivo_ausencia_dcm: string | null;
+  presenca_dep: boolean;
+  motivo_ausencia_dep: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface Profile {
   id: string;
   user_id: string;
@@ -178,4 +203,5 @@ export interface DashboardMetrics {
   expiredActions: number;
   agendaPointsInScheduling: number;
   decisionsWithFollowUpPercent: number;
+  nextMeetingAgendaPoints: number;
 }
