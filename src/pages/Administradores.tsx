@@ -11,6 +11,7 @@ import {
   Settings,
   Briefcase
 } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -271,10 +272,14 @@ function AdministratorForm({
   onCreate: (data: any) => Promise<any>;
   onUpdate: (data: any) => Promise<any>;
 }) {
+  const { data: pelouros = [] } = usePelouros();
+  const setAdminPelouros = useSetAdministratorPelouros();
+  
   const [formData, setFormData] = useState({
     name: '',
     email: '',
   });
+  const [selectedPelouros, setSelectedPelouros] = useState<string[]>([]);
 
   useMemo(() => {
     if (administrator) {
@@ -282,21 +287,41 @@ function AdministratorForm({
         name: administrator.name,
         email: administrator.email,
       });
+      const adminPelouros = (administrator as any).administrator_pelouros?.map((ap: any) => ap.pelouro_id) || [];
+      setSelectedPelouros(adminPelouros);
     } else {
       setFormData({
         name: '',
         email: '',
       });
+      setSelectedPelouros([]);
     }
   }, [administrator, open]);
 
+  const handleTogglePelouro = (pelouroId: string) => {
+    setSelectedPelouros(prev => 
+      prev.includes(pelouroId) 
+        ? prev.filter(id => id !== pelouroId)
+        : [...prev, pelouroId]
+    );
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    let adminId = administrator?.id;
+    
     if (administrator) {
       await onUpdate({ id: administrator.id, ...formData });
     } else {
-      await onCreate(formData);
+      const result = await onCreate(formData);
+      adminId = result?.id;
     }
+    
+    // Save pelouros relationship
+    if (adminId) {
+      await setAdminPelouros.mutateAsync({ administratorId: adminId, pelouroIds: selectedPelouros });
+    }
+    
     onOpenChange(false);
   };
 
@@ -325,6 +350,25 @@ function AdministratorForm({
               onChange={(e) => setFormData(f => ({ ...f, email: e.target.value }))}
               required
             />
+          </div>
+          <div className="space-y-2">
+            <Label>Pelouro(s)</Label>
+            <p className="text-xs text-muted-foreground mb-2">Selecione os pelouros associados a este administrador</p>
+            <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto border rounded-md p-2">
+              {pelouros.map((pelouro) => (
+                <div 
+                  key={pelouro.id}
+                  className={cn(
+                    "flex items-center gap-2 p-2 rounded cursor-pointer transition-colors",
+                    selectedPelouros.includes(pelouro.id) ? "bg-primary/10" : "hover:bg-muted"
+                  )}
+                  onClick={() => handleTogglePelouro(pelouro.id)}
+                >
+                  <Checkbox checked={selectedPelouros.includes(pelouro.id)} />
+                  <span className="text-sm">{pelouro.name}</span>
+                </div>
+              ))}
+            </div>
           </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
