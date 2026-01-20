@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { format } from 'date-fns';
 import { pt } from 'date-fns/locale';
 import { 
@@ -339,7 +339,7 @@ function AgendaPointDetailWithDecisions({
   const [selectedPelouros, setSelectedPelouros] = useState<string[]>([]);
 
   // Update local state when extra data loads
-  useMemo(() => {
+  useEffect(() => {
     if (extraData) {
       setPrecedentes(extraData.precedentes || '');
       setObservacoes(extraData.observacoes || '');
@@ -347,7 +347,7 @@ function AgendaPointDetailWithDecisions({
   }, [extraData]);
 
   // Update selected pelouros when point pelouros loads
-  useMemo(() => {
+  useEffect(() => {
     if (pointPelouros) {
       setSelectedPelouros(pointPelouros.map((pp: any) => pp.pelouro_id));
     }
@@ -705,7 +705,7 @@ function EditableAttributesTab({
   const [localValues, setLocalValues] = useState<Record<string, any>>({});
 
   // Initialize local values from attributes
-  useMemo(() => {
+  useEffect(() => {
     const values: Record<string, any> = {};
     attributes.forEach((attr: any) => {
       const def = attr.attribute_definition;
