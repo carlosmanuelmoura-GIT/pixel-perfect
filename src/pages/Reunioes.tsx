@@ -12,7 +12,10 @@ import {
   MoreHorizontal,
   Loader2,
   Pencil,
-  Trash2
+  Trash2,
+  Copy,
+  FileText,
+  Lock
 } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
@@ -50,14 +53,17 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   useMeetings, 
   useCreateMeeting, 
   useUpdateMeeting, 
   useDeleteMeeting,
+  useDuplicateMeeting,
+  useAgendaPoints,
   useAdministrators 
 } from '@/hooks/useSupabaseData';
-import type { Meeting, MeetingStatus, MeetingType } from '@/types/database';
+import type { Meeting, MeetingStatus, MeetingType, AgendaPoint } from '@/types/database';
 import { cn } from '@/lib/utils';
 
 const meetingTypeStyles: Record<MeetingType, string> = {
@@ -88,11 +94,14 @@ export default function Reunioes() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingMeeting, setEditingMeeting] = useState<Meeting | null>(null);
   const [deleteMeeting, setDeleteMeeting] = useState<Meeting | null>(null);
+  const [selectedMeeting, setSelectedMeeting] = useState<Meeting | null>(null);
+  const [duplicateMeetingData, setDuplicateMeetingData] = useState<{ meeting: Meeting; newDate: string } | null>(null);
   
   const { data: meetings = [], isLoading } = useMeetings();
   const createMeeting = useCreateMeeting();
   const updateMeeting = useUpdateMeeting();
   const deleteMeetingMutation = useDeleteMeeting();
+  const duplicateMeetingMutation = useDuplicateMeeting();
 
   const filteredMeetings = useMemo(() => {
     return meetings.filter(meeting => {
@@ -125,6 +134,20 @@ export default function Reunioes() {
       await deleteMeetingMutation.mutateAsync(deleteMeeting.id);
       setDeleteMeeting(null);
     }
+  };
+
+  const handleDuplicate = async () => {
+    if (duplicateMeetingData) {
+      await duplicateMeetingMutation.mutateAsync({
+        meetingId: duplicateMeetingData.meeting.id,
+        newDate: new Date(duplicateMeetingData.newDate).toISOString()
+      });
+      setDuplicateMeetingData(null);
+    }
+  };
+
+  const handleMeetingClick = (meeting: Meeting) => {
+    setSelectedMeeting(meeting);
   };
 
   if (isLoading) {
@@ -182,8 +205,10 @@ export default function Reunioes() {
               meeting={meeting}
               participantNames={getParticipantNames(meeting.participants)}
               index={index}
+              onClick={() => handleMeetingClick(meeting)}
               onEdit={() => handleEdit(meeting)}
               onDelete={() => setDeleteMeeting(meeting)}
+              onDuplicate={() => setDuplicateMeetingData({ meeting, newDate: format(new Date(), 'yyyy-MM-dd') })}
             />
           ))}
         </div>
@@ -199,6 +224,12 @@ export default function Reunioes() {
         )}
       </div>
 
+      {/* Meeting Detail Dialog with Agenda Points */}
+      <MeetingDetailDialog 
+        meeting={selectedMeeting}
+        onClose={() => setSelectedMeeting(null)}
+      />
+
       {/* Create/Edit Form */}
       <MeetingForm
         open={isFormOpen}
@@ -207,6 +238,35 @@ export default function Reunioes() {
         onCreate={createMeeting.mutateAsync}
         onUpdate={updateMeeting.mutateAsync}
       />
+
+      {/* Duplicate Dialog */}
+      <Dialog open={!!duplicateMeetingData} onOpenChange={(open) => !open && setDuplicateMeetingData(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Duplicar Reunião</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Selecione a nova data para a reunião duplicada. Os pontos de agenda serão copiados.
+            </p>
+            <div className="space-y-2">
+              <Label>Nova Data</Label>
+              <Input
+                type="date"
+                value={duplicateMeetingData?.newDate || ''}
+                onChange={(e) => setDuplicateMeetingData(d => d ? { ...d, newDate: e.target.value } : null)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDuplicateMeetingData(null)}>Cancelar</Button>
+            <Button onClick={handleDuplicate} disabled={duplicateMeetingMutation.isPending}>
+              {duplicateMeetingMutation.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Copy className="w-4 h-4 mr-2" />}
+              Duplicar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Delete Confirmation */}
       <AlertDialog open={!!deleteMeeting} onOpenChange={(open) => !open && setDeleteMeeting(null)}>
@@ -226,6 +286,88 @@ export default function Reunioes() {
         </AlertDialogContent>
       </AlertDialog>
     </AppLayout>
+  );
+}
+
+// Meeting Detail Dialog with Tabs
+function MeetingDetailDialog({ meeting, onClose }: { meeting: Meeting | null; onClose: () => void }) {
+  const { data: agendaPoints = [], isLoading } = useAgendaPoints(meeting?.id);
+  const [activeTab, setActiveTab] = useState('dados');
+
+  if (!meeting) return null;
+
+  const date = new Date(meeting.date);
+
+  return (
+    <Dialog open={!!meeting} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Badge variant="outline" className={cn("font-semibold", meetingTypeStyles[meeting.type])}>
+              {meeting.type}
+            </Badge>
+            {meetingTypeLabels[meeting.type]}
+          </DialogTitle>
+        </DialogHeader>
+
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="dados">Dados da Reunião</TabsTrigger>
+            <TabsTrigger value="pontos">Pontos de Agenda ({agendaPoints.length})</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="dados" className="mt-4 space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="p-4 border rounded-lg">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
+                  <Clock className="w-4 h-4" />
+                  Data e Hora
+                </div>
+                <p className="font-medium">{format(date, "EEEE, dd 'de' MMMM 'de' yyyy 'às' HH:mm", { locale: pt })}</p>
+              </div>
+              <div className="p-4 border rounded-lg">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
+                  <MapPin className="w-4 h-4" />
+                  Local
+                </div>
+                <p className="font-medium">{meeting.location}</p>
+              </div>
+            </div>
+            <div className="p-4 border rounded-lg">
+              <div className="text-sm text-muted-foreground mb-1">Estado</div>
+              <span className={cn("status-badge", meetingStatusStyles[meeting.status])}>{meeting.status}</span>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="pontos" className="mt-4">
+            {isLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : agendaPoints.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <FileText className="w-10 h-10 mx-auto mb-2 opacity-50" />
+                <p>Nenhum ponto de agenda</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {agendaPoints.map((point) => (
+                  <div key={point.id} className={cn("p-3 border rounded-lg", point.is_confidential && "border-l-2 border-l-status-warning")}>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium text-muted-foreground w-6">{point.order}</span>
+                      {point.is_confidential && <Lock className="w-3.5 h-3.5 text-status-warning" />}
+                      <span className="font-medium text-foreground">{point.title}</span>
+                      <Badge variant="outline" className="ml-auto text-xs">{point.status}</Badge>
+                    </div>
+                    <p className="text-sm text-muted-foreground ml-6 mt-1">{point.subject}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -383,11 +525,13 @@ interface MeetingCardProps {
   meeting: Meeting;
   participantNames: string;
   index: number;
+  onClick: () => void;
   onEdit: () => void;
   onDelete: () => void;
+  onDuplicate: () => void;
 }
 
-function MeetingCard({ meeting, participantNames, index, onEdit, onDelete }: MeetingCardProps) {
+function MeetingCard({ meeting, participantNames, index, onClick, onEdit, onDelete, onDuplicate }: MeetingCardProps) {
   const date = new Date(meeting.date);
   
   return (
@@ -398,6 +542,7 @@ function MeetingCard({ meeting, participantNames, index, onEdit, onDelete }: Mee
         "animate-slide-up"
       )}
       style={{ animationDelay: `${index * 0.1}s` }}
+      onClick={onClick}
     >
       <div className="p-5">
         <div className="flex items-start justify-between gap-4">
@@ -466,14 +611,20 @@ function MeetingCard({ meeting, participantNames, index, onEdit, onDelete }: Mee
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={onEdit}>
+              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onEdit(); }}>
                 <Pencil className="w-4 h-4 mr-2" />
                 Editar
               </DropdownMenuItem>
-              <DropdownMenuItem>Duplicar</DropdownMenuItem>
+              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onDuplicate(); }}>
+                <Copy className="w-4 h-4 mr-2" />
+                Duplicar
+              </DropdownMenuItem>
               <DropdownMenuItem>Exportar Ata</DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem className="text-destructive" onClick={onDelete}>
+              <DropdownMenuItem className="text-destructive" onClick={(e) => { e.stopPropagation(); onDelete(); }}>
+                <Trash2 className="w-4 h-4 mr-2" />
+                Eliminar
+              </DropdownMenuItem>
                 <Trash2 className="w-4 h-4 mr-2" />
                 Eliminar
               </DropdownMenuItem>

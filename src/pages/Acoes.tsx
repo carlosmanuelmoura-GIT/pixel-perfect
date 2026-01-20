@@ -13,7 +13,11 @@ import {
   User,
   Loader2,
   Pencil,
-  Trash2
+  Trash2,
+  FileText,
+  Gavel,
+  Calendar,
+  ExternalLink
 } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
@@ -54,6 +58,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   useActions, 
   usePelouros, 
@@ -275,7 +280,7 @@ export default function Acoes() {
   );
 }
 
-// Action Form Component
+// Action Form Component with Decision Info
 function ActionForm({
   open,
   onOpenChange,
@@ -306,6 +311,7 @@ function ActionForm({
     progress: 0,
     criticality: 'Normal' as Criticality,
   });
+  const [activeTab, setActiveTab] = useState('form');
 
   useMemo(() => {
     if (action) {
@@ -335,6 +341,8 @@ function ActionForm({
     }
   }, [action, open, decisions]);
 
+  const selectedDecision = decisions.find(d => d.id === formData.decision_id);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -356,139 +364,198 @@ function ActionForm({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{action ? 'Editar Ação' : 'Nova Ação'}</DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="decision_id">Decisão Associada *</Label>
-            <Select value={formData.decision_id} onValueChange={(v) => setFormData(f => ({ ...f, decision_id: v }))}>
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione a decisão" />
-              </SelectTrigger>
-              <SelectContent>
-                {decisions.map(d => (
-                  <SelectItem key={d.id} value={d.id}>
-                    {d.text.substring(0, 60)}...
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+        
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="form">Dados da Ação</TabsTrigger>
+            <TabsTrigger value="decision">Decisão/Ponto Associado</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="form" className="mt-4">
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="decision_id">Decisão Associada *</Label>
+                <Select value={formData.decision_id} onValueChange={(v) => setFormData(f => ({ ...f, decision_id: v }))}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione a decisão" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {decisions.map(d => (
+                      <SelectItem key={d.id} value={d.id}>
+                        {d.text.substring(0, 60)}...
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="description">Descrição *</Label>
-            <Textarea
-              id="description"
-              value={formData.description}
-              onChange={(e) => setFormData(f => ({ ...f, description: e.target.value }))}
-              required
-            />
-          </div>
+              <div className="space-y-2">
+                <Label htmlFor="description">Descrição *</Label>
+                <Textarea
+                  id="description"
+                  value={formData.description}
+                  onChange={(e) => setFormData(f => ({ ...f, description: e.target.value }))}
+                  required
+                />
+              </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Responsável</Label>
-              <Select value={formData.responsible_id} onValueChange={(v) => setFormData(f => ({ ...f, responsible_id: v }))}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione" />
-                </SelectTrigger>
-                <SelectContent>
-                  {administrators.map(a => (
-                    <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Pelouro</Label>
-              <Select value={formData.pelouro_id} onValueChange={(v) => setFormData(f => ({ ...f, pelouro_id: v }))}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione" />
-                </SelectTrigger>
-                <SelectContent>
-                  {pelouros.map(p => (
-                    <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Responsável</Label>
+                  <Select value={formData.responsible_id} onValueChange={(v) => setFormData(f => ({ ...f, responsible_id: v }))}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {administrators.map(a => (
+                        <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Pelouro</Label>
+                  <Select value={formData.pelouro_id} onValueChange={(v) => setFormData(f => ({ ...f, pelouro_id: v }))}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {pelouros.map(p => (
+                        <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="start_date">Data Início</Label>
-              <Input
-                id="start_date"
-                type="date"
-                value={formData.start_date}
-                onChange={(e) => setFormData(f => ({ ...f, start_date: e.target.value }))}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="deadline">Prazo *</Label>
-              <Input
-                id="deadline"
-                type="date"
-                value={formData.deadline}
-                onChange={(e) => setFormData(f => ({ ...f, deadline: e.target.value }))}
-                required
-              />
-            </div>
-          </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="start_date">Data Início</Label>
+                  <Input
+                    id="start_date"
+                    type="date"
+                    value={formData.start_date}
+                    onChange={(e) => setFormData(f => ({ ...f, start_date: e.target.value }))}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="deadline">Prazo *</Label>
+                  <Input
+                    id="deadline"
+                    type="date"
+                    value={formData.deadline}
+                    onChange={(e) => setFormData(f => ({ ...f, deadline: e.target.value }))}
+                    required
+                  />
+                </div>
+              </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Estado</Label>
-              <Select value={formData.status} onValueChange={(v) => setFormData(f => ({ ...f, status: v as ActionStatus }))}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {actionStatuses.map(s => (
-                    <SelectItem key={s} value={s}>{s}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Criticidade</Label>
-              <Select value={formData.criticality} onValueChange={(v) => setFormData(f => ({ ...f, criticality: v as Criticality }))}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {criticalities.map(c => (
-                    <SelectItem key={c} value={c}>{c}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Estado</Label>
+                  <Select value={formData.status} onValueChange={(v) => setFormData(f => ({ ...f, status: v as ActionStatus }))}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {actionStatuses.map(s => (
+                        <SelectItem key={s} value={s}>{s}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Criticidade</Label>
+                  <Select value={formData.criticality} onValueChange={(v) => setFormData(f => ({ ...f, criticality: v as Criticality }))}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {criticalities.map(c => (
+                        <SelectItem key={c} value={c}>{c}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
 
-          <div className="space-y-2">
-            <div className="flex justify-between">
-              <Label>Progresso</Label>
-              <span className="text-sm text-muted-foreground">{formData.progress}%</span>
-            </div>
-            <Slider
-              value={[formData.progress]}
-              onValueChange={([v]) => setFormData(f => ({ ...f, progress: v }))}
-              max={100}
-              step={5}
-            />
-          </div>
+              <div className="space-y-2">
+                <div className="flex justify-between">
+                  <Label>Progresso</Label>
+                  <span className="text-sm text-muted-foreground">{formData.progress}%</span>
+                </div>
+                <Slider
+                  value={[formData.progress]}
+                  onValueChange={([v]) => setFormData(f => ({ ...f, progress: v }))}
+                  max={100}
+                  step={5}
+                />
+              </div>
 
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              Cancelar
-            </Button>
-            <Button type="submit">
-              {action ? 'Atualizar' : 'Criar'}
-            </Button>
-          </DialogFooter>
-        </form>
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                  Cancelar
+                </Button>
+                <Button type="submit">
+                  {action ? 'Atualizar' : 'Criar'}
+                </Button>
+              </DialogFooter>
+            </form>
+          </TabsContent>
+          
+          <TabsContent value="decision" className="mt-4 space-y-4">
+            {selectedDecision ? (
+              <>
+                {/* Decision Info */}
+                <div className="p-4 border rounded-lg space-y-3">
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Gavel className="w-4 h-4" />
+                    <span className="font-medium">Decisão</span>
+                  </div>
+                  <p className="text-foreground">{selectedDecision.text}</p>
+                  <div className="flex gap-2">
+                    <Badge variant="outline">{selectedDecision.type}</Badge>
+                    <Badge variant="outline">{selectedDecision.criticality}</Badge>
+                    <Badge variant="outline">{selectedDecision.vote_mode}</Badge>
+                  </div>
+                  {selectedDecision.deliberation && (
+                    <p className="text-sm text-muted-foreground">{selectedDecision.deliberation}</p>
+                  )}
+                </div>
+
+                {/* Agenda Point Info */}
+                {selectedDecision.agenda_point && (
+                  <div className="p-4 border rounded-lg space-y-3">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <FileText className="w-4 h-4" />
+                      <span className="font-medium">Ponto de Agenda</span>
+                    </div>
+                    <p className="font-medium text-foreground">{selectedDecision.agenda_point.title}</p>
+                    <p className="text-sm text-muted-foreground">{selectedDecision.agenda_point.subject}</p>
+                    
+                    {selectedDecision.agenda_point.meeting && (
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground mt-2">
+                        <Calendar className="w-3.5 h-3.5" />
+                        <span>
+                          {selectedDecision.agenda_point.meeting.type} - {format(new Date(selectedDecision.agenda_point.meeting.date), "dd/MM/yyyy", { locale: pt })}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                <Gavel className="w-10 h-10 mx-auto mb-2 opacity-50" />
+                <p>Selecione uma decisão no formulário</p>
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
       </DialogContent>
     </Dialog>
   );
