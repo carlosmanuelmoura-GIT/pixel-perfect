@@ -13,7 +13,12 @@ import {
   FileText,
   Gavel,
   Trash2,
-  Pencil
+  Pencil,
+  History,
+  Users,
+  MessageSquare,
+  FolderOpen,
+  Flag
 } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
@@ -55,6 +60,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
+import { Checkbox } from '@/components/ui/checkbox';
 import { 
   useAgendaPoints, 
   useMeetings, 
@@ -66,7 +72,9 @@ import {
   useDecisions,
   useCreateDecision,
   useUpdateDecision,
-  useDeleteDecision
+  useDeleteDecision,
+  useAgendaPointExtraData,
+  useUpsertAgendaPointExtraData
 } from '@/hooks/useSupabaseData';
 import { AgendaPointDetail } from '@/components/agenda/AgendaPointDetail';
 import type { AgendaPoint, AgendaPointStatus, Priority, PointType, Decision, DecisionType, Criticality, VoteMode } from '@/types/database';
@@ -289,7 +297,7 @@ export default function Agenda() {
   );
 }
 
-// Component for Agenda Point with Decisions Tab
+// Component for Agenda Point with all Tabs including Extra Data
 function AgendaPointDetailWithDecisions({ 
   point, 
   families 
@@ -299,6 +307,7 @@ function AgendaPointDetailWithDecisions({
 }) {
   const [activeTab, setActiveTab] = useState('details');
   const { data: decisions = [], isLoading: decisionsLoading } = useDecisions(point.id);
+  const { data: extraData, isLoading: extraDataLoading } = useAgendaPointExtraData(point.id);
   const [isDecisionFormOpen, setIsDecisionFormOpen] = useState(false);
   const [editingDecision, setEditingDecision] = useState<Decision | null>(null);
   const [deleteDecision, setDeleteDecision] = useState<Decision | null>(null);
@@ -306,6 +315,31 @@ function AgendaPointDetailWithDecisions({
   const createDecision = useCreateDecision();
   const updateDecision = useUpdateDecision();
   const deleteDecisionMutation = useDeleteDecision();
+  const upsertExtraData = useUpsertAgendaPointExtraData();
+
+  // Local state for extra data form
+  const [precedentes, setPrecedentes] = useState(extraData?.precedentes || '');
+  const [observacoes, setObservacoes] = useState(extraData?.observacoes || '');
+  const [presencaMca, setPresencaMca] = useState(extraData?.presenca_mca || false);
+  const [motivoAusenciaMca, setMotivoAusenciaMca] = useState(extraData?.motivo_ausencia_mca || '');
+  const [presencaDcm, setPresencaDcm] = useState(extraData?.presenca_dcm || false);
+  const [motivoAusenciaDcm, setMotivoAusenciaDcm] = useState(extraData?.motivo_ausencia_dcm || '');
+  const [presencaDep, setPresencaDep] = useState(extraData?.presenca_dep || false);
+  const [motivoAusenciaDep, setMotivoAusenciaDep] = useState(extraData?.motivo_ausencia_dep || '');
+
+  // Update local state when extra data loads
+  useMemo(() => {
+    if (extraData) {
+      setPrecedentes(extraData.precedentes || '');
+      setObservacoes(extraData.observacoes || '');
+      setPresencaMca(extraData.presenca_mca || false);
+      setMotivoAusenciaMca(extraData.motivo_ausencia_mca || '');
+      setPresencaDcm(extraData.presenca_dcm || false);
+      setMotivoAusenciaDcm(extraData.motivo_ausencia_dcm || '');
+      setPresencaDep(extraData.presenca_dep || false);
+      setMotivoAusenciaDep(extraData.motivo_ausencia_dep || '');
+    }
+  }, [extraData]);
 
   const handleDeleteDecision = async () => {
     if (deleteDecision) {
@@ -314,17 +348,218 @@ function AgendaPointDetailWithDecisions({
     }
   };
 
+  const handleToggleFollowup = async (decision: Decision) => {
+    await updateDecision.mutateAsync({
+      id: decision.id,
+      has_followup: !decision.has_followup
+    });
+  };
+
+  const handleSavePrecedentes = async () => {
+    await upsertExtraData.mutateAsync({
+      agenda_point_id: point.id,
+      precedentes
+    });
+  };
+
+  const handleSaveObservacoes = async () => {
+    await upsertExtraData.mutateAsync({
+      agenda_point_id: point.id,
+      observacoes
+    });
+  };
+
+  const handleSavePresencas = async () => {
+    await upsertExtraData.mutateAsync({
+      agenda_point_id: point.id,
+      presenca_mca: presencaMca,
+      motivo_ausencia_mca: !presencaMca ? motivoAusenciaMca : null,
+      presenca_dcm: presencaDcm,
+      motivo_ausencia_dcm: !presencaDcm ? motivoAusenciaDcm : null,
+      presenca_dep: presencaDep,
+      motivo_ausencia_dep: !presencaDep ? motivoAusenciaDep : null,
+    });
+  };
+
+  // Filter families to only show DOC+ (or similar)
+  const docFamilies = families.filter(f => 
+    f.name.toLowerCase().includes('doc') || 
+    f.name.toLowerCase().includes('documentação')
+  );
+
   return (
     <Tabs value={activeTab} onValueChange={setActiveTab}>
-      <TabsList className="grid w-full grid-cols-2">
-        <TabsTrigger value="details">Detalhes</TabsTrigger>
-        <TabsTrigger value="decisions">Decisões ({decisions.length})</TabsTrigger>
+      <TabsList className="grid w-full grid-cols-6 h-auto">
+        <TabsTrigger value="details" className="text-xs px-2 py-2">
+          <FileText className="w-3 h-3 mr-1" />
+          Detalhes
+        </TabsTrigger>
+        <TabsTrigger value="precedentes" className="text-xs px-2 py-2">
+          <History className="w-3 h-3 mr-1" />
+          Precedentes
+        </TabsTrigger>
+        <TabsTrigger value="presencas" className="text-xs px-2 py-2">
+          <Users className="w-3 h-3 mr-1" />
+          Presenças
+        </TabsTrigger>
+        <TabsTrigger value="observacoes" className="text-xs px-2 py-2">
+          <MessageSquare className="w-3 h-3 mr-1" />
+          Observações
+        </TabsTrigger>
+        <TabsTrigger value="documentacao" className="text-xs px-2 py-2">
+          <FolderOpen className="w-3 h-3 mr-1" />
+          DOC+
+        </TabsTrigger>
+        <TabsTrigger value="decisions" className="text-xs px-2 py-2">
+          <Gavel className="w-3 h-3 mr-1" />
+          Decisões ({decisions.length})
+        </TabsTrigger>
       </TabsList>
       
+      {/* Tab: Detalhes */}
       <TabsContent value="details" className="mt-4">
         <AgendaPointDetail point={point} families={families} />
       </TabsContent>
+
+      {/* Tab: Precedentes */}
+      <TabsContent value="precedentes" className="mt-4 space-y-4">
+        <div className="space-y-2">
+          <Label>Histórico e Precedentes</Label>
+          <p className="text-sm text-muted-foreground">
+            Registe informação relevante sobre precedentes e histórico deste ponto.
+          </p>
+          <Textarea
+            value={precedentes}
+            onChange={(e) => setPrecedentes(e.target.value)}
+            placeholder="Descreva os precedentes relevantes..."
+            className="min-h-[200px]"
+          />
+          <Button onClick={handleSavePrecedentes} disabled={upsertExtraData.isPending}>
+            {upsertExtraData.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+            Guardar Precedentes
+          </Button>
+        </div>
+      </TabsContent>
+
+      {/* Tab: Presenças */}
+      <TabsContent value="presencas" className="mt-4 space-y-6">
+        <div className="space-y-4">
+          {/* MCA */}
+          <div className="p-4 border rounded-lg space-y-3">
+            <div className="flex items-center justify-between">
+              <Label className="text-base font-medium">MCA</Label>
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="presenca_mca"
+                  checked={presencaMca}
+                  onCheckedChange={(checked) => setPresencaMca(checked === true)}
+                />
+                <Label htmlFor="presenca_mca" className="text-sm">Presente</Label>
+              </div>
+            </div>
+            {!presencaMca && (
+              <div className="space-y-2">
+                <Label className="text-sm text-muted-foreground">Motivo da Ausência</Label>
+                <Input
+                  value={motivoAusenciaMca}
+                  onChange={(e) => setMotivoAusenciaMca(e.target.value)}
+                  placeholder="Indique o motivo da ausência..."
+                />
+              </div>
+            )}
+          </div>
+
+          {/* DCM */}
+          <div className="p-4 border rounded-lg space-y-3">
+            <div className="flex items-center justify-between">
+              <Label className="text-base font-medium">DCM</Label>
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="presenca_dcm"
+                  checked={presencaDcm}
+                  onCheckedChange={(checked) => setPresencaDcm(checked === true)}
+                />
+                <Label htmlFor="presenca_dcm" className="text-sm">Presente</Label>
+              </div>
+            </div>
+            {!presencaDcm && (
+              <div className="space-y-2">
+                <Label className="text-sm text-muted-foreground">Motivo da Ausência</Label>
+                <Input
+                  value={motivoAusenciaDcm}
+                  onChange={(e) => setMotivoAusenciaDcm(e.target.value)}
+                  placeholder="Indique o motivo da ausência..."
+                />
+              </div>
+            )}
+          </div>
+
+          {/* Dep */}
+          <div className="p-4 border rounded-lg space-y-3">
+            <div className="flex items-center justify-between">
+              <Label className="text-base font-medium">Dep</Label>
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="presenca_dep"
+                  checked={presencaDep}
+                  onCheckedChange={(checked) => setPresencaDep(checked === true)}
+                />
+                <Label htmlFor="presenca_dep" className="text-sm">Presente</Label>
+              </div>
+            </div>
+            {!presencaDep && (
+              <div className="space-y-2">
+                <Label className="text-sm text-muted-foreground">Motivo da Ausência</Label>
+                <Input
+                  value={motivoAusenciaDep}
+                  onChange={(e) => setMotivoAusenciaDep(e.target.value)}
+                  placeholder="Indique o motivo da ausência..."
+                />
+              </div>
+            )}
+          </div>
+
+          <Button onClick={handleSavePresencas} disabled={upsertExtraData.isPending}>
+            {upsertExtraData.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+            Guardar Presenças
+          </Button>
+        </div>
+      </TabsContent>
+
+      {/* Tab: Observações */}
+      <TabsContent value="observacoes" className="mt-4 space-y-4">
+        <div className="space-y-2">
+          <Label>Observações</Label>
+          <p className="text-sm text-muted-foreground">
+            Notas e observações adicionais sobre este ponto de agenda.
+          </p>
+          <Textarea
+            value={observacoes}
+            onChange={(e) => setObservacoes(e.target.value)}
+            placeholder="Adicione observações..."
+            className="min-h-[200px]"
+          />
+          <Button onClick={handleSaveObservacoes} disabled={upsertExtraData.isPending}>
+            {upsertExtraData.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+            Guardar Observações
+          </Button>
+        </div>
+      </TabsContent>
+
+      {/* Tab: Documentação DOC+ */}
+      <TabsContent value="documentacao" className="mt-4 space-y-4">
+        {docFamilies.length > 0 ? (
+          <AgendaPointDetail point={point} families={docFamilies} />
+        ) : (
+          <div className="text-center py-8 text-muted-foreground">
+            <FolderOpen className="w-10 h-10 mx-auto mb-2 opacity-50" />
+            <p>Nenhuma família de atributos de documentação configurada</p>
+            <p className="text-sm mt-1">Configure famílias com "DOC" no nome nas definições de atributos.</p>
+          </div>
+        )}
+      </TabsContent>
       
+      {/* Tab: Decisões */}
       <TabsContent value="decisions" className="mt-4 space-y-4">
         <div className="flex justify-between items-center">
           <h4 className="font-medium text-foreground">Decisões associadas</h4>
@@ -346,34 +581,57 @@ function AgendaPointDetailWithDecisions({
         ) : (
           <div className="space-y-3">
             {decisions.map((decision) => (
-              <div key={decision.id} className="border rounded-lg p-4 space-y-2">
+              <div key={decision.id} className={cn(
+                "border rounded-lg p-4 space-y-2",
+                decision.has_followup && "border-l-4 border-l-primary"
+              )}>
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
-                    <p className="font-medium text-foreground">{decision.text}</p>
+                    <div className="flex items-center gap-2 mb-2">
+                      <p className="font-medium text-foreground">{decision.text}</p>
+                      {decision.has_followup && (
+                        <Badge className="bg-primary/10 text-primary border-primary/20">
+                          <Flag className="w-3 h-3 mr-1" />
+                          Follow-up
+                        </Badge>
+                      )}
+                    </div>
                     <div className="flex gap-2 mt-2">
                       <Badge variant="outline">{decision.type}</Badge>
                       <Badge variant="outline">{decision.criticality}</Badge>
                       <Badge variant="outline">{decision.vote_mode}</Badge>
                     </div>
                   </div>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-8 w-8">
-                        <MoreHorizontal className="w-4 h-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => { setEditingDecision(decision); setIsDecisionFormOpen(true); }}>
-                        <Pencil className="w-4 h-4 mr-2" />
-                        Editar
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem className="text-destructive" onClick={() => setDeleteDecision(decision)}>
-                        <Trash2 className="w-4 h-4 mr-2" />
-                        Eliminar
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                  <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 mr-2">
+                      <Checkbox
+                        id={`followup-${decision.id}`}
+                        checked={decision.has_followup || false}
+                        onCheckedChange={() => handleToggleFollowup(decision)}
+                      />
+                      <Label htmlFor={`followup-${decision.id}`} className="text-xs text-muted-foreground cursor-pointer">
+                        Para Follow-up
+                      </Label>
+                    </div>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <MoreHorizontal className="w-4 h-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => { setEditingDecision(decision); setIsDecisionFormOpen(true); }}>
+                          <Pencil className="w-4 h-4 mr-2" />
+                          Editar
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem className="text-destructive" onClick={() => setDeleteDecision(decision)}>
+                          <Trash2 className="w-4 h-4 mr-2" />
+                          Eliminar
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
                 </div>
                 {decision.deliberation && (
                   <p className="text-sm text-muted-foreground">{decision.deliberation}</p>
