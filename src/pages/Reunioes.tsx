@@ -625,9 +625,6 @@ function MeetingCard({ meeting, participantNames, index, onClick, onEdit, onDele
                 <Trash2 className="w-4 h-4 mr-2" />
                 Eliminar
               </DropdownMenuItem>
-                <Trash2 className="w-4 h-4 mr-2" />
-                Eliminar
-              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
           <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-foreground transition-colors" />
