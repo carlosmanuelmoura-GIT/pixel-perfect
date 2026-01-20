@@ -405,23 +405,31 @@ function ActionForm({
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>Responsável</Label>
+                  <Label>Pessoa Responsável *</Label>
                   <Select value={formData.responsible_id} onValueChange={(v) => setFormData(f => ({ ...f, responsible_id: v }))}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Selecione" />
+                      <SelectValue placeholder="Selecione a pessoa" />
                     </SelectTrigger>
                     <SelectContent>
-                      {administrators.map(a => (
-                        <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
-                      ))}
+                      {administrators.map(a => {
+                        const adminPelouros = a.administrator_pelouros?.map((ap: any) => ap.pelouro?.name).filter(Boolean).join(', ');
+                        return (
+                          <SelectItem key={a.id} value={a.id}>
+                            <div className="flex flex-col">
+                              <span>{a.name}</span>
+                              {adminPelouros && <span className="text-xs text-muted-foreground">{adminPelouros}</span>}
+                            </div>
+                          </SelectItem>
+                        );
+                      })}
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label>Pelouro</Label>
+                  <Label>Departamento *</Label>
                   <Select value={formData.pelouro_id} onValueChange={(v) => setFormData(f => ({ ...f, pelouro_id: v }))}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Selecione" />
+                      <SelectValue placeholder="Selecione o departamento" />
                     </SelectTrigger>
                     <SelectContent>
                       {pelouros.map(p => (

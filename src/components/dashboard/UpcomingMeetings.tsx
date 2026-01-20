@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 interface UpcomingMeetingsProps {
   meetings: Meeting[];
   isLoading?: boolean;
+  onMeetingClick?: (meetingId: string) => void;
 }
 
 const meetingTypeStyles: Record<string, string> = {
@@ -22,7 +23,7 @@ const meetingTypeLabels: Record<string, string> = {
   RT: 'Reunião de Trabalho',
 };
 
-export function UpcomingMeetings({ meetings, isLoading }: UpcomingMeetingsProps) {
+export function UpcomingMeetings({ meetings, isLoading, onMeetingClick }: UpcomingMeetingsProps) {
   if (isLoading) {
     return (
       <div className="bg-card rounded-xl border border-border/50 shadow-card overflow-hidden">
@@ -65,6 +66,7 @@ export function UpcomingMeetings({ meetings, isLoading }: UpcomingMeetingsProps)
           meetings.map((meeting, index) => (
             <div 
               key={meeting.id}
+              onClick={() => onMeetingClick?.(meeting.id)}
               className={cn(
                 "p-4 hover:bg-muted/30 transition-colors cursor-pointer",
                 "animate-slide-up"

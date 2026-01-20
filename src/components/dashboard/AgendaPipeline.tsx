@@ -9,6 +9,7 @@ import {
 interface AgendaPipelineProps {
   points: AgendaPoint[];
   isLoading?: boolean;
+  onStatusClick?: (status: AgendaPointStatus) => void;
 }
 
 const statusConfig: Record<AgendaPointStatus, {
@@ -37,7 +38,7 @@ const statusConfig: Record<AgendaPointStatus, {
   },
 };
 
-export function AgendaPipeline({ points, isLoading }: AgendaPipelineProps) {
+export function AgendaPipeline({ points, isLoading, onStatusClick }: AgendaPipelineProps) {
   if (isLoading) {
     return (
       <div className="bg-card rounded-xl border border-border/50 shadow-card overflow-hidden">
@@ -100,6 +101,7 @@ export function AgendaPipeline({ points, isLoading }: AgendaPipelineProps) {
             return (
               <div 
                 key={status}
+                onClick={() => onStatusClick?.(status as AgendaPointStatus)}
                 className={cn(
                   "flex items-center gap-3 p-3 rounded-lg transition-all duration-200 hover:scale-[1.02] cursor-pointer",
                   config.bgColor,
