@@ -59,7 +59,8 @@ import {
   useDeletePelouro,
   useUserRoles,
   useProfiles,
-  useUpdateUserRole
+  useUpdateUserRole,
+  useSetAdministratorPelouros
 } from '@/hooks/useSupabaseData';
 import type { Administrator, Pelouro, UserRole, AppRole, Profile } from '@/types/database';
 import { cn } from '@/lib/utils';
@@ -160,51 +161,64 @@ function AdministratorsTab() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {administrators.map((admin, index) => (
-          <div 
-            key={admin.id}
-            className={cn(
-              "bg-card rounded-xl border border-border/50 p-5 shadow-card",
-              "animate-slide-up"
-            )}
-            style={{ animationDelay: `${index * 0.05}s` }}
-          >
-            <div className="flex items-start justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-                  <span className="text-lg font-semibold text-primary">
-                    {admin.name.charAt(0).toUpperCase()}
-                  </span>
+        {administrators.map((admin, index) => {
+          const adminPelouros = (admin as any).administrator_pelouros?.map((ap: any) => ap.pelouro?.name).filter(Boolean);
+          return (
+            <div 
+              key={admin.id}
+              className={cn(
+                "bg-card rounded-xl border border-border/50 p-5 shadow-card",
+                "animate-slide-up"
+              )}
+              style={{ animationDelay: `${index * 0.05}s` }}
+            >
+              <div className="flex items-start justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                    <span className="text-lg font-semibold text-primary">
+                      {admin.name.charAt(0).toUpperCase()}
+                    </span>
+                  </div>
+                  <div>
+                    <h4 className="font-medium text-foreground">{admin.name}</h4>
+                    <p className="text-sm text-muted-foreground flex items-center gap-1">
+                      <Mail className="w-3.5 h-3.5" />
+                      {admin.email}
+                    </p>
+                    {adminPelouros && adminPelouros.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mt-2">
+                        {adminPelouros.map((name: string, i: number) => (
+                          <Badge key={i} variant="outline" className="text-xs">
+                            <Briefcase className="w-3 h-3 mr-1" />
+                            {name}
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
-                <div>
-                  <h4 className="font-medium text-foreground">{admin.name}</h4>
-                  <p className="text-sm text-muted-foreground flex items-center gap-1">
-                    <Mail className="w-3.5 h-3.5" />
-                    {admin.email}
-                  </p>
-                </div>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                      <MoreHorizontal className="w-4 h-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => handleEdit(admin)}>
+                      <Pencil className="w-4 h-4 mr-2" />
+                      Editar
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem className="text-destructive" onClick={() => setDeleteAdmin(admin)}>
+                      <Trash2 className="w-4 h-4 mr-2" />
+                      Eliminar
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-8 w-8">
-                    <MoreHorizontal className="w-4 h-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => handleEdit(admin)}>
-                    <Pencil className="w-4 h-4 mr-2" />
-                    Editar
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem className="text-destructive" onClick={() => setDeleteAdmin(admin)}>
-                    <Trash2 className="w-4 h-4 mr-2" />
-                    Eliminar
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {administrators.length === 0 && (

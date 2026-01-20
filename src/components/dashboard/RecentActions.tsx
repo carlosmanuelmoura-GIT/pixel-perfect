@@ -3,11 +3,12 @@ import { pt } from 'date-fns/locale';
 import type { Action, ActionStatus } from '@/types/database';
 import { cn } from '@/lib/utils';
 import { Progress } from '@/components/ui/progress';
-import { AlertTriangle, CheckCircle, Clock, Pause, XCircle } from 'lucide-react';
+import { AlertTriangle, CheckCircle, Clock, Pause, XCircle, Building2 } from 'lucide-react';
 
 interface RecentActionsProps {
   actions: Action[];
   isLoading?: boolean;
+  onActionClick?: (actionId: string) => void;
 }
 
 const statusConfig: Record<ActionStatus, {
@@ -22,7 +23,7 @@ const statusConfig: Record<ActionStatus, {
   'Cancelada': { icon: XCircle, color: 'text-status-neutral', bgColor: 'bg-muted' },
 };
 
-export function RecentActions({ actions, isLoading }: RecentActionsProps) {
+export function RecentActions({ actions, isLoading, onActionClick }: RecentActionsProps) {
   const now = new Date();
 
   if (isLoading) {
@@ -75,6 +76,7 @@ export function RecentActions({ actions, isLoading }: RecentActionsProps) {
             return (
               <div 
                 key={action.id}
+                onClick={() => onActionClick?.(action.id)}
                 className={cn(
                   "p-4 hover:bg-muted/30 transition-colors cursor-pointer",
                   "animate-slide-up"
@@ -97,7 +99,18 @@ export function RecentActions({ actions, isLoading }: RecentActionsProps) {
                     </div>
                     
                     <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
-                      <span>{action.responsible?.name || 'Sem responsável'}</span>
+                      <span className="flex items-center gap-1">
+                        {action.responsible?.name || 'Sem responsável'}
+                      </span>
+                      {action.pelouro && (
+                        <>
+                          <span>•</span>
+                          <span className="flex items-center gap-1">
+                            <Building2 className="w-3 h-3" />
+                            {action.pelouro.name}
+                          </span>
+                        </>
+                      )}
                       <span>•</span>
                       <span className={cn(
                         isOverdue && "text-status-critical font-medium",
