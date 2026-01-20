@@ -335,6 +335,61 @@ export function useDeleteAgendaPoint() {
   });
 }
 
+// ============== AGENDA POINT PELOUROS (ATTENDANCE) ==============
+export function useAgendaPointPelouros(agendaPointId?: string) {
+  return useQuery({
+    queryKey: ['agenda_point_pelouros', agendaPointId],
+    queryFn: async () => {
+      if (!agendaPointId) return [];
+      
+      const { data, error } = await supabase
+        .from('agenda_point_pelouros')
+        .select(`
+          *,
+          pelouro:pelouros(*)
+        `)
+        .eq('agenda_point_id', agendaPointId);
+      
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!agendaPointId,
+  });
+}
+
+export function useSetAgendaPointPelouros() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async ({ agendaPointId, pelouroIds }: { agendaPointId: string; pelouroIds: string[] }) => {
+      // Delete existing relations
+      await supabase
+        .from('agenda_point_pelouros')
+        .delete()
+        .eq('agenda_point_id', agendaPointId);
+      
+      // Insert new relations
+      if (pelouroIds.length > 0) {
+        const { error } = await supabase
+          .from('agenda_point_pelouros')
+          .insert(pelouroIds.map(pelouroId => ({
+            agenda_point_id: agendaPointId,
+            pelouro_id: pelouroId,
+          })));
+        
+        if (error) throw error;
+      }
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['agenda_point_pelouros', variables.agendaPointId] });
+      toast.success('Departamentos atualizados com sucesso');
+    },
+    onError: (error) => {
+      toast.error('Erro ao atualizar departamentos: ' + error.message);
+    },
+  });
+}
+
 // ============== AGENDA POINT EXTRA DATA ==============
 export function useAgendaPointExtraData(agendaPointId?: string) {
   return useQuery({

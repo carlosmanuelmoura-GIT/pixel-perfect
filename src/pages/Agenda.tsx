@@ -18,7 +18,10 @@ import {
   Users,
   MessageSquare,
   FolderOpen,
-  Flag
+  Flag,
+  BarChart3,
+  Save,
+  Briefcase
 } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
@@ -74,7 +77,13 @@ import {
   useUpdateDecision,
   useDeleteDecision,
   useAgendaPointExtraData,
-  useUpsertAgendaPointExtraData
+  useUpsertAgendaPointExtraData,
+  usePelouros,
+  useAgendaPointPelouros,
+  useSetAgendaPointPelouros,
+  useAgendaPointAttributes,
+  useUpsertAgendaPointAttribute,
+  useDeleteAgendaPointAttribute
 } from '@/hooks/useSupabaseData';
 import { AgendaPointDetail } from '@/components/agenda/AgendaPointDetail';
 import type { AgendaPoint, AgendaPointStatus, Priority, PointType, Decision, DecisionType, Criticality, VoteMode } from '@/types/database';
@@ -307,7 +316,10 @@ function AgendaPointDetailWithDecisions({
 }) {
   const [activeTab, setActiveTab] = useState('details');
   const { data: decisions = [], isLoading: decisionsLoading } = useDecisions(point.id);
-  const { data: extraData, isLoading: extraDataLoading } = useAgendaPointExtraData(point.id);
+  const { data: extraData } = useAgendaPointExtraData(point.id);
+  const { data: pelouros = [] } = usePelouros();
+  const { data: pointPelouros = [] } = useAgendaPointPelouros(point.id);
+  const { data: pointAttributes = [] } = useAgendaPointAttributes(point.id);
   const [isDecisionFormOpen, setIsDecisionFormOpen] = useState(false);
   const [editingDecision, setEditingDecision] = useState<Decision | null>(null);
   const [deleteDecision, setDeleteDecision] = useState<Decision | null>(null);
@@ -316,30 +328,30 @@ function AgendaPointDetailWithDecisions({
   const updateDecision = useUpdateDecision();
   const deleteDecisionMutation = useDeleteDecision();
   const upsertExtraData = useUpsertAgendaPointExtraData();
+  const setPointPelouros = useSetAgendaPointPelouros();
+  const upsertAttribute = useUpsertAgendaPointAttribute();
 
   // Local state for extra data form
   const [precedentes, setPrecedentes] = useState(extraData?.precedentes || '');
   const [observacoes, setObservacoes] = useState(extraData?.observacoes || '');
-  const [presencaMca, setPresencaMca] = useState(extraData?.presenca_mca || false);
-  const [motivoAusenciaMca, setMotivoAusenciaMca] = useState(extraData?.motivo_ausencia_mca || '');
-  const [presencaDcm, setPresencaDcm] = useState(extraData?.presenca_dcm || false);
-  const [motivoAusenciaDcm, setMotivoAusenciaDcm] = useState(extraData?.motivo_ausencia_dcm || '');
-  const [presencaDep, setPresencaDep] = useState(extraData?.presenca_dep || false);
-  const [motivoAusenciaDep, setMotivoAusenciaDep] = useState(extraData?.motivo_ausencia_dep || '');
+  
+  // Selected pelouros for attendance
+  const [selectedPelouros, setSelectedPelouros] = useState<string[]>([]);
 
   // Update local state when extra data loads
   useMemo(() => {
     if (extraData) {
       setPrecedentes(extraData.precedentes || '');
       setObservacoes(extraData.observacoes || '');
-      setPresencaMca(extraData.presenca_mca || false);
-      setMotivoAusenciaMca(extraData.motivo_ausencia_mca || '');
-      setPresencaDcm(extraData.presenca_dcm || false);
-      setMotivoAusenciaDcm(extraData.motivo_ausencia_dcm || '');
-      setPresencaDep(extraData.presenca_dep || false);
-      setMotivoAusenciaDep(extraData.motivo_ausencia_dep || '');
     }
   }, [extraData]);
+
+  // Update selected pelouros when point pelouros loads
+  useMemo(() => {
+    if (pointPelouros) {
+      setSelectedPelouros(pointPelouros.map((pp: any) => pp.pelouro_id));
+    }
+  }, [pointPelouros]);
 
   const handleDeleteDecision = async () => {
     if (deleteDecision) {
@@ -370,29 +382,52 @@ function AgendaPointDetailWithDecisions({
   };
 
   const handleSavePresencas = async () => {
-    await upsertExtraData.mutateAsync({
-      agenda_point_id: point.id,
-      presenca_mca: presencaMca,
-      motivo_ausencia_mca: !presencaMca ? motivoAusenciaMca : null,
-      presenca_dcm: presencaDcm,
-      motivo_ausencia_dcm: !presencaDcm ? motivoAusenciaDcm : null,
-      presenca_dep: presencaDep,
-      motivo_ausencia_dep: !presencaDep ? motivoAusenciaDep : null,
+    await setPointPelouros.mutateAsync({
+      agendaPointId: point.id,
+      pelouroIds: selectedPelouros
     });
   };
 
-  // Filter families to only show DOC+ (or similar)
+  const handleTogglePelouro = (pelouroId: string) => {
+    setSelectedPelouros(prev => 
+      prev.includes(pelouroId) 
+        ? prev.filter(id => id !== pelouroId)
+        : [...prev, pelouroId]
+    );
+  };
+
+  // Filter families for DOC+ tab
   const docFamilies = families.filter(f => 
     f.name.toLowerCase().includes('doc') || 
     f.name.toLowerCase().includes('documentação')
   );
 
+  // Filter families for Indicador tab
+  const indicadorFamilies = families.filter(f => 
+    f.name.toLowerCase().includes('indicador') || 
+    f.name.toLowerCase().includes('kpi') ||
+    f.name.toLowerCase().includes('métricas')
+  );
+
+  // Other families for Detalhes tab (excluding DOC+ and Indicador)
+  const detailFamilies = families.filter(f => 
+    !f.name.toLowerCase().includes('doc') && 
+    !f.name.toLowerCase().includes('documentação') &&
+    !f.name.toLowerCase().includes('indicador') &&
+    !f.name.toLowerCase().includes('kpi') &&
+    !f.name.toLowerCase().includes('métricas')
+  );
+
   return (
     <Tabs value={activeTab} onValueChange={setActiveTab}>
-      <TabsList className="grid w-full grid-cols-6 h-auto">
+      <TabsList className="grid w-full grid-cols-7 h-auto">
         <TabsTrigger value="details" className="text-xs px-2 py-2">
           <FileText className="w-3 h-3 mr-1" />
           Detalhes
+        </TabsTrigger>
+        <TabsTrigger value="indicador" className="text-xs px-2 py-2">
+          <BarChart3 className="w-3 h-3 mr-1" />
+          Indicador
         </TabsTrigger>
         <TabsTrigger value="precedentes" className="text-xs px-2 py-2">
           <History className="w-3 h-3 mr-1" />
@@ -416,9 +451,25 @@ function AgendaPointDetailWithDecisions({
         </TabsTrigger>
       </TabsList>
       
-      {/* Tab: Detalhes */}
+      {/* Tab: Detalhes - with CRUD */}
       <TabsContent value="details" className="mt-4">
-        <AgendaPointDetail point={point} families={families} />
+        <EditableAttributesTab 
+          point={point} 
+          families={detailFamilies} 
+          attributes={pointAttributes}
+          upsertAttribute={upsertAttribute}
+        />
+      </TabsContent>
+
+      {/* Tab: Indicador */}
+      <TabsContent value="indicador" className="mt-4">
+        <EditableAttributesTab 
+          point={point} 
+          families={indicadorFamilies} 
+          attributes={pointAttributes}
+          upsertAttribute={upsertAttribute}
+          emptyMessage="Nenhuma família de indicadores configurada. Configure famílias com 'Indicador', 'KPI' ou 'Métricas' no nome."
+        />
       </TabsContent>
 
       {/* Tab: Precedentes */}
@@ -435,92 +486,60 @@ function AgendaPointDetailWithDecisions({
             className="min-h-[200px]"
           />
           <Button onClick={handleSavePrecedentes} disabled={upsertExtraData.isPending}>
-            {upsertExtraData.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+            {upsertExtraData.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
             Guardar Precedentes
           </Button>
         </div>
       </TabsContent>
 
-      {/* Tab: Presenças */}
+      {/* Tab: Presenças - Multi-select Departamentos */}
       <TabsContent value="presencas" className="mt-4 space-y-6">
         <div className="space-y-4">
-          {/* MCA */}
-          <div className="p-4 border rounded-lg space-y-3">
-            <div className="flex items-center justify-between">
-              <Label className="text-base font-medium">MCA</Label>
-              <div className="flex items-center gap-2">
-                <Checkbox
-                  id="presenca_mca"
-                  checked={presencaMca}
-                  onCheckedChange={(checked) => setPresencaMca(checked === true)}
-                />
-                <Label htmlFor="presenca_mca" className="text-sm">Presente</Label>
-              </div>
-            </div>
-            {!presencaMca && (
-              <div className="space-y-2">
-                <Label className="text-sm text-muted-foreground">Motivo da Ausência</Label>
-                <Input
-                  value={motivoAusenciaMca}
-                  onChange={(e) => setMotivoAusenciaMca(e.target.value)}
-                  placeholder="Indique o motivo da ausência..."
-                />
-              </div>
-            )}
+          <div>
+            <Label className="text-base font-medium">Departamento(s)</Label>
+            <p className="text-sm text-muted-foreground mb-4">
+              Selecione os departamentos que participam neste ponto de agenda.
+            </p>
           </div>
-
-          {/* DCM */}
-          <div className="p-4 border rounded-lg space-y-3">
-            <div className="flex items-center justify-between">
-              <Label className="text-base font-medium">DCM</Label>
-              <div className="flex items-center gap-2">
-                <Checkbox
-                  id="presenca_dcm"
-                  checked={presencaDcm}
-                  onCheckedChange={(checked) => setPresencaDcm(checked === true)}
-                />
-                <Label htmlFor="presenca_dcm" className="text-sm">Presente</Label>
-              </div>
+          
+          {pelouros.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <Briefcase className="w-10 h-10 mx-auto mb-2 opacity-50" />
+              <p>Nenhum departamento configurado</p>
+              <p className="text-sm mt-1">Configure departamentos no backoffice (Administradores → Pelouros).</p>
             </div>
-            {!presencaDcm && (
-              <div className="space-y-2">
-                <Label className="text-sm text-muted-foreground">Motivo da Ausência</Label>
-                <Input
-                  value={motivoAusenciaDcm}
-                  onChange={(e) => setMotivoAusenciaDcm(e.target.value)}
-                  placeholder="Indique o motivo da ausência..."
-                />
-              </div>
-            )}
-          </div>
-
-          {/* Dep */}
-          <div className="p-4 border rounded-lg space-y-3">
-            <div className="flex items-center justify-between">
-              <Label className="text-base font-medium">Dep</Label>
-              <div className="flex items-center gap-2">
-                <Checkbox
-                  id="presenca_dep"
-                  checked={presencaDep}
-                  onCheckedChange={(checked) => setPresencaDep(checked === true)}
-                />
-                <Label htmlFor="presenca_dep" className="text-sm">Presente</Label>
-              </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-3">
+              {pelouros.map((pelouro) => (
+                <div 
+                  key={pelouro.id} 
+                  className={cn(
+                    "p-4 border rounded-lg cursor-pointer transition-colors",
+                    selectedPelouros.includes(pelouro.id) 
+                      ? "border-primary bg-primary/5" 
+                      : "border-border hover:border-primary/50"
+                  )}
+                  onClick={() => handleTogglePelouro(pelouro.id)}
+                >
+                  <div className="flex items-center gap-3">
+                    <Checkbox
+                      checked={selectedPelouros.includes(pelouro.id)}
+                      onCheckedChange={() => handleTogglePelouro(pelouro.id)}
+                    />
+                    <div>
+                      <p className="font-medium">{pelouro.name}</p>
+                      {pelouro.description && (
+                        <p className="text-sm text-muted-foreground">{pelouro.description}</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
-            {!presencaDep && (
-              <div className="space-y-2">
-                <Label className="text-sm text-muted-foreground">Motivo da Ausência</Label>
-                <Input
-                  value={motivoAusenciaDep}
-                  onChange={(e) => setMotivoAusenciaDep(e.target.value)}
-                  placeholder="Indique o motivo da ausência..."
-                />
-              </div>
-            )}
-          </div>
+          )}
 
-          <Button onClick={handleSavePresencas} disabled={upsertExtraData.isPending}>
-            {upsertExtraData.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+          <Button onClick={handleSavePresencas} disabled={setPointPelouros.isPending}>
+            {setPointPelouros.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
             Guardar Presenças
           </Button>
         </div>
@@ -540,23 +559,21 @@ function AgendaPointDetailWithDecisions({
             className="min-h-[200px]"
           />
           <Button onClick={handleSaveObservacoes} disabled={upsertExtraData.isPending}>
-            {upsertExtraData.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+            {upsertExtraData.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
             Guardar Observações
           </Button>
         </div>
       </TabsContent>
 
-      {/* Tab: Documentação DOC+ */}
+      {/* Tab: Documentação DOC+ - with CRUD */}
       <TabsContent value="documentacao" className="mt-4 space-y-4">
-        {docFamilies.length > 0 ? (
-          <AgendaPointDetail point={point} families={docFamilies} />
-        ) : (
-          <div className="text-center py-8 text-muted-foreground">
-            <FolderOpen className="w-10 h-10 mx-auto mb-2 opacity-50" />
-            <p>Nenhuma família de atributos de documentação configurada</p>
-            <p className="text-sm mt-1">Configure famílias com "DOC" no nome nas definições de atributos.</p>
-          </div>
-        )}
+        <EditableAttributesTab 
+          point={point} 
+          families={docFamilies} 
+          attributes={pointAttributes}
+          upsertAttribute={upsertAttribute}
+          emptyMessage="Nenhuma família de atributos de documentação configurada. Configure famílias com 'DOC' ou 'Documentação' no nome."
+        />
       </TabsContent>
       
       {/* Tab: Decisões */}
@@ -668,6 +685,169 @@ function AgendaPointDetailWithDecisions({
         </AlertDialog>
       </TabsContent>
     </Tabs>
+  );
+}
+
+// Editable Attributes Tab Component for CRUD
+function EditableAttributesTab({
+  point,
+  families,
+  attributes,
+  upsertAttribute,
+  emptyMessage
+}: {
+  point: AgendaPoint;
+  families: any[];
+  attributes: any[];
+  upsertAttribute: any;
+  emptyMessage?: string;
+}) {
+  const [localValues, setLocalValues] = useState<Record<string, any>>({});
+
+  // Initialize local values from attributes
+  useMemo(() => {
+    const values: Record<string, any> = {};
+    attributes.forEach((attr: any) => {
+      const def = attr.attribute_definition;
+      if (def) {
+        if (def.attribute_type === 'boolean') {
+          values[def.id] = attr.value_boolean;
+        } else if (def.attribute_type === 'number' || def.attribute_type === 'currency') {
+          values[def.id] = attr.value_number;
+        } else if (def.attribute_type === 'date' || def.attribute_type === 'datetime') {
+          values[def.id] = attr.value_date;
+        } else {
+          values[def.id] = attr.value_text;
+        }
+      }
+    });
+    setLocalValues(values);
+  }, [attributes]);
+
+  const handleSaveAttribute = async (definitionId: string, definition: any) => {
+    const value = localValues[definitionId];
+    const existingAttr = attributes.find((a: any) => a.attribute_definition_id === definitionId);
+    
+    await upsertAttribute.mutateAsync({
+      id: existingAttr?.id,
+      agenda_point_id: point.id,
+      attribute_definition_id: definitionId,
+      value_text: ['text', 'textarea', 'url', 'email', 'select'].includes(definition.attribute_type) ? value : null,
+      value_number: ['number', 'currency'].includes(definition.attribute_type) ? Number(value) : null,
+      value_boolean: definition.attribute_type === 'boolean' ? Boolean(value) : null,
+      value_date: ['date', 'datetime'].includes(definition.attribute_type) ? value : null,
+    });
+  };
+
+  if (families.length === 0) {
+    return (
+      <div className="text-center py-8 text-muted-foreground">
+        <FolderOpen className="w-10 h-10 mx-auto mb-2 opacity-50" />
+        <p>{emptyMessage || 'Nenhuma família de atributos configurada'}</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {families.map((family: any) => {
+        const definitions = family.definitions || [];
+        if (definitions.length === 0) return null;
+        
+        return (
+          <div key={family.id} className="space-y-4">
+            <div className="flex items-center gap-2">
+              <h4 className="font-medium text-foreground">{family.name}</h4>
+              {family.description && (
+                <span className="text-sm text-muted-foreground">- {family.description}</span>
+              )}
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              {definitions.filter((d: any) => d.is_active).map((def: any) => (
+                <div key={def.id} className="space-y-2">
+                  <Label htmlFor={def.id} className="flex items-center gap-1">
+                    {def.label}
+                    {def.is_required && <span className="text-destructive">*</span>}
+                  </Label>
+                  {def.description && (
+                    <p className="text-xs text-muted-foreground">{def.description}</p>
+                  )}
+                  
+                  {/* Render field based on type */}
+                  {def.attribute_type === 'textarea' ? (
+                    <Textarea
+                      id={def.id}
+                      value={localValues[def.id] || ''}
+                      onChange={(e) => setLocalValues(prev => ({ ...prev, [def.id]: e.target.value }))}
+                      placeholder={def.description || `Digite ${def.label}...`}
+                      className="min-h-[80px]"
+                    />
+                  ) : def.attribute_type === 'boolean' ? (
+                    <div className="flex items-center gap-2">
+                      <Checkbox
+                        id={def.id}
+                        checked={localValues[def.id] || false}
+                        onCheckedChange={(checked) => setLocalValues(prev => ({ ...prev, [def.id]: checked }))}
+                      />
+                      <Label htmlFor={def.id} className="text-sm cursor-pointer">
+                        {def.label}
+                      </Label>
+                    </div>
+                  ) : def.attribute_type === 'select' && def.options?.options ? (
+                    <Select
+                      value={localValues[def.id] || ''}
+                      onValueChange={(v) => setLocalValues(prev => ({ ...prev, [def.id]: v }))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder={`Selecione ${def.label}...`} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {def.options.options.map((opt: any) => (
+                          <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : def.attribute_type === 'number' || def.attribute_type === 'currency' ? (
+                    <Input
+                      id={def.id}
+                      type="number"
+                      value={localValues[def.id] || ''}
+                      onChange={(e) => setLocalValues(prev => ({ ...prev, [def.id]: e.target.value }))}
+                      placeholder={def.description || `Digite ${def.label}...`}
+                    />
+                  ) : def.attribute_type === 'date' || def.attribute_type === 'datetime' ? (
+                    <Input
+                      id={def.id}
+                      type={def.attribute_type === 'datetime' ? 'datetime-local' : 'date'}
+                      value={localValues[def.id] || ''}
+                      onChange={(e) => setLocalValues(prev => ({ ...prev, [def.id]: e.target.value }))}
+                    />
+                  ) : (
+                    <Input
+                      id={def.id}
+                      type={def.attribute_type === 'email' ? 'email' : def.attribute_type === 'url' ? 'url' : 'text'}
+                      value={localValues[def.id] || ''}
+                      onChange={(e) => setLocalValues(prev => ({ ...prev, [def.id]: e.target.value }))}
+                      placeholder={def.description || `Digite ${def.label}...`}
+                    />
+                  )}
+                  
+                  <Button 
+                    size="sm" 
+                    variant="outline" 
+                    onClick={() => handleSaveAttribute(def.id, def)}
+                    disabled={upsertAttribute.isPending}
+                  >
+                    {upsertAttribute.isPending ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <Save className="w-3 h-3 mr-1" />}
+                    Guardar
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      })}
+    </div>
   );
 }
 
