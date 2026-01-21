@@ -6,26 +6,33 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Simple CSV to XLS conversion using XML Spreadsheet format
+// Simple XLS generation using Microsoft SpreadsheetML (Excel 2003 XML)
+// Note: although the file extension is .xls, the content is XML. This is supported by Excel.
 function createExcelXML(data: Record<string, unknown>[], sheetName: string): string {
   const headers = data.length > 0 ? Object.keys(data[0]) : [];
-  
+  const safeSheetName = sanitizeSheetName(sheetName);
+  const expandedRowCount = data.length + 1;
+  const expandedColumnCount = Math.max(headers.length, 1);
+
   let xml = `<?xml version="1.0" encoding="UTF-8"?>
 <?mso-application progid="Excel.Sheet"?>
 <Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"
  xmlns:o="urn:schemas-microsoft-com:office:office"
  xmlns:x="urn:schemas-microsoft-com:office:excel"
- xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">
-<Styles>
- <Style ss:ID="Header">
-  <Font ss:Bold="1"/>
-  <Interior ss:Color="#4472C4" ss:Pattern="Solid"/>
-  <Font ss:Color="#FFFFFF"/>
- </Style>
- <Style ss:ID="Default"/>
-</Styles>
-<Worksheet ss:Name="${escapeXml(sheetName)}">
-<Table>`;
+ xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"
+ xmlns:html="http://www.w3.org/TR/REC-html40">
+ <Styles>
+  <Style ss:ID="Default" ss:Name="Normal">
+   <Alignment ss:Vertical="Bottom"/>
+   <Font ss:FontName="Calibri" x:Family="Swiss" ss:Size="11" ss:Color="#000000"/>
+  </Style>
+  <Style ss:ID="Header">
+   <Font ss:FontName="Calibri" x:Family="Swiss" ss:Size="11" ss:Bold="1" ss:Color="#FFFFFF"/>
+   <Interior ss:Color="#4472C4" ss:Pattern="Solid"/>
+  </Style>
+ </Styles>
+ <Worksheet ss:Name="${escapeXml(safeSheetName)}">
+  <Table ss:ExpandedColumnCount="${expandedColumnCount}" ss:ExpandedRowCount="${expandedRowCount}" x:FullColumns="1" x:FullRows="1">`;
 
   // Add header row
   xml += '<Row ss:StyleID="Header">';
@@ -47,6 +54,16 @@ function createExcelXML(data: Record<string, unknown>[], sheetName: string): str
 
   xml += '</Table></Worksheet></Workbook>';
   return xml;
+}
+
+function sanitizeSheetName(name: string): string {
+  // Excel worksheet name rules: max 31 chars; cannot contain: : \/ ? * [ ]
+  const cleaned = (name || '')
+    .replace(/[\[\]\*\\\/\?\:]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  const truncated = cleaned.slice(0, 31);
+  return truncated || 'Folha1';
 }
 
 function escapeXml(str: string): string {
