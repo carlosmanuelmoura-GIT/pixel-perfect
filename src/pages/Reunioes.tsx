@@ -330,7 +330,7 @@ function MeetingDetailDialog({ meeting, onClose }: { meeting: Meeting | null; on
 
   const handleAgendaPointClick = () => {
     onClose();
-    navigate('/agenda');
+    navigate(`/agenda?meeting=${meeting?.id}`);
   };
 
   if (!meeting) return null;
