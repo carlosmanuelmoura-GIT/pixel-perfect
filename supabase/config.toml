@@ -1,1 +1,4 @@
 project_id = "dgeijqteqrjlrxosermt"
+
+[functions.export-actions]
+verify_jwt = false
