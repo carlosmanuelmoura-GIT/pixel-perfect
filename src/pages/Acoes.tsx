@@ -64,11 +64,12 @@ import {
   usePelouros, 
   useAdministrators,
   useDecisions,
+  useMeetings,
   useCreateAction,
   useUpdateAction,
   useDeleteAction
 } from '@/hooks/useSupabaseData';
-import type { Action, ActionStatus, Criticality, Decision } from '@/types/database';
+import type { Action, ActionStatus, Criticality, Decision, Meeting } from '@/types/database';
 import { cn } from '@/lib/utils';
 
 const statusConfig: Record<ActionStatus, {
@@ -105,6 +106,7 @@ export default function Acoes() {
   const { data: pelouros = [] } = usePelouros();
   const { data: administrators = [] } = useAdministrators();
   const { data: decisions = [] } = useDecisions();
+  const { data: meetings = [] } = useMeetings();
   
   const createAction = useCreateAction();
   const updateAction = useUpdateAction();
@@ -253,6 +255,7 @@ export default function Acoes() {
         onOpenChange={setIsFormOpen}
         action={editingAction}
         decisions={decisions}
+        meetings={meetings}
         administrators={administrators}
         pelouros={pelouros}
         onCreate={createAction.mutateAsync}
@@ -286,6 +289,7 @@ function ActionForm({
   onOpenChange,
   action,
   decisions,
+  meetings,
   administrators,
   pelouros,
   onCreate,
@@ -295,11 +299,13 @@ function ActionForm({
   onOpenChange: (open: boolean) => void;
   action: Action | null;
   decisions: Decision[];
+  meetings: Meeting[];
   administrators: any[];
   pelouros: any[];
   onCreate: (data: any) => Promise<any>;
   onUpdate: (data: any) => Promise<any>;
 }) {
+  const [selectedMeetingId, setSelectedMeetingId] = useState<string>('');
   const [formData, setFormData] = useState({
     decision_id: '',
     description: '',
@@ -313,14 +319,28 @@ function ActionForm({
   });
   const [activeTab, setActiveTab] = useState('form');
 
-  // Only show decisions marked for follow-up
-  const followUpDecisions = useMemo(() => 
-    decisions.filter(d => d.has_followup), 
-    [decisions]
+  // Get only CA type meetings for the filter
+  const caMeetings = useMemo(() => 
+    meetings.filter(m => m.type === 'CA').sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()), 
+    [meetings]
   );
+
+  // Only show decisions marked for follow-up and filtered by selected meeting
+  const followUpDecisions = useMemo(() => {
+    const filtered = decisions.filter(d => d.has_followup);
+    if (!selectedMeetingId) return filtered;
+    
+    // Filter by meeting via agenda_point.meeting_id
+    return filtered.filter(d => d.agenda_point?.meeting_id === selectedMeetingId);
+  }, [decisions, selectedMeetingId]);
 
   useMemo(() => {
     if (action) {
+      // When editing, set the meeting from the action's decision
+      const actionDecision = decisions.find(d => d.id === action.decision_id);
+      if (actionDecision?.agenda_point?.meeting_id) {
+        setSelectedMeetingId(actionDecision.agenda_point.meeting_id);
+      }
       setFormData({
         decision_id: action.decision_id,
         description: action.description,
@@ -333,8 +353,9 @@ function ActionForm({
         criticality: action.criticality,
       });
     } else {
+      setSelectedMeetingId('');
       setFormData({
-        decision_id: followUpDecisions[0]?.id || '',
+        decision_id: '',
         description: '',
         responsible_name: '',
         pelouro_id: '',
@@ -345,7 +366,17 @@ function ActionForm({
         criticality: 'Normal',
       });
     }
-  }, [action, open, followUpDecisions]);
+  }, [action, open, decisions]);
+
+  // When meeting changes, reset decision if not applicable
+  useMemo(() => {
+    if (selectedMeetingId && formData.decision_id) {
+      const currentDecision = decisions.find(d => d.id === formData.decision_id);
+      if (currentDecision?.agenda_point?.meeting_id !== selectedMeetingId) {
+        setFormData(f => ({ ...f, decision_id: '' }));
+      }
+    }
+  }, [selectedMeetingId, decisions]);
 
   const selectedDecision = decisions.find(d => d.id === formData.decision_id);
 
@@ -384,10 +415,30 @@ function ActionForm({
           <TabsContent value="form" className="mt-4">
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
+                <Label>Reunião CA</Label>
+                <Select value={selectedMeetingId} onValueChange={setSelectedMeetingId}>
+                  <SelectTrigger>
+                    <Calendar className="w-4 h-4 mr-2" />
+                    <SelectValue placeholder="Selecione a reunião (opcional)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Todas as reuniões</SelectItem>
+                    {caMeetings.map(m => (
+                      <SelectItem key={m.id} value={m.id}>
+                        CA - {format(new Date(m.date), 'dd/MM/yyyy', { locale: pt })}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
                 <Label htmlFor="decision_id">Decisão Associada *</Label>
                 {followUpDecisions.length === 0 ? (
                   <div className="p-3 border rounded-md bg-muted/50 text-sm text-muted-foreground">
-                    Nenhuma decisão marcada para follow-up. Marque decisões como "Para Follow-up" nos pontos de agenda primeiro.
+                    {selectedMeetingId 
+                      ? "Nenhuma decisão marcada para follow-up nesta reunião."
+                      : "Nenhuma decisão marcada para follow-up. Marque decisões como \"Para Follow-up\" nos pontos de agenda primeiro."}
                   </div>
                 ) : (
                   <Select value={formData.decision_id} onValueChange={(v) => setFormData(f => ({ ...f, decision_id: v }))}>
