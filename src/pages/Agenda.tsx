@@ -3,6 +3,23 @@ import { supabase } from '@/integrations/supabase/client';
 import { useSearchParams } from 'react-router-dom';
 import { format } from 'date-fns';
 import { pt } from 'date-fns/locale';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { 
   Plus, 
   Filter,
@@ -27,7 +44,8 @@ import {
   Download,
   Trash2 as TrashIcon,
   File,
-  Briefcase
+  Briefcase,
+  GripVertical
 } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
@@ -78,6 +96,7 @@ import {
   useCreateAgendaPoint,
   useUpdateAgendaPoint,
   useDeleteAgendaPoint,
+  useReorderAgendaPoints,
   useDecisions,
   useCreateDecision,
   useUpdateDecision,
@@ -133,6 +152,38 @@ export default function Agenda() {
   const createPoint = useCreateAgendaPoint();
   const updatePoint = useUpdateAgendaPoint();
   const deletePointMutation = useDeleteAgendaPoint();
+  const reorderPoints = useReorderAgendaPoints();
+
+  // DnD sensors
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  const handleDragEnd = (event: DragEndEvent, meetingPoints: AgendaPoint[]) => {
+    const { active, over } = event;
+
+    if (over && active.id !== over.id) {
+      const oldIndex = meetingPoints.findIndex((p) => p.id === active.id);
+      const newIndex = meetingPoints.findIndex((p) => p.id === over.id);
+
+      const reordered = arrayMove(meetingPoints, oldIndex, newIndex);
+      
+      // Create updates array with new order values
+      const updates = reordered.map((point, index) => ({
+        id: point.id,
+        order: index + 1,
+      }));
+
+      reorderPoints.mutate(updates);
+    }
+  };
 
   // Handle URL query parameter for direct point navigation
   useEffect(() => {
@@ -164,6 +215,11 @@ export default function Agenda() {
         grouped.set(meetingId, { meeting: point.meeting, points: [] });
       }
       grouped.get(meetingId)!.points.push(point);
+    });
+
+    // Sort points within each meeting by order
+    grouped.forEach((value) => {
+      value.points.sort((a, b) => (a.order || 0) - (b.order || 0));
     });
     
     return Array.from(grouped.values()).sort((a, b) => {
@@ -253,22 +309,32 @@ export default function Agenda() {
                 <Badge variant="secondary" className="ml-auto">{points.length} pontos</Badge>
               </div>
 
-              <div className="bg-card rounded-xl border border-border/50 shadow-card overflow-hidden">
-                <div className="divide-y divide-border/50">
-                  {points.map((point, index) => (
-                    <AgendaPointRow 
-                      key={point.id} 
-                      point={point} 
-                      index={index}
-                      onClick={() => setSelectedPoint(point)}
-                      onEdit={() => handleEdit(point)}
-                      onDelete={() => setDeletePoint(point)}
-                    />
-                  ))}
-                </div>
-              </div>
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragEnd={(event) => handleDragEnd(event, points)}
+              >
+                <SortableContext
+                  items={points.map(p => p.id)}
+                  strategy={verticalListSortingStrategy}
+                >
+                  <div className="divide-y divide-border/50">
+                    {points.map((point, index) => (
+                      <SortableAgendaPointRow 
+                        key={point.id} 
+                        point={point} 
+                        index={index}
+                        onClick={() => setSelectedPoint(point)}
+                        onEdit={() => handleEdit(point)}
+                        onDelete={() => setDeletePoint(point)}
+                      />
+                    ))}
+                  </div>
+                </SortableContext>
+              </DndContext>
             </div>
           ))}
+
 
           {pointsByMeeting.length === 0 && (
             <div className="text-center py-12 text-muted-foreground">
@@ -1563,6 +1629,115 @@ function DecisionForm({
         </form>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function SortableAgendaPointRow({ 
+  point, 
+  index,
+  onClick,
+  onEdit,
+  onDelete,
+}: { 
+  point: AgendaPoint; 
+  index: number;
+  onClick: () => void;
+  onEdit: () => void;
+  onDelete: () => void;
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: point.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+    zIndex: isDragging ? 1 : 0,
+  };
+
+  const statusStyle = statusStyles[point.status];
+  const priorityStyle = priorityStyles[point.priority];
+  const TypeIcon = pointTypeStyles[point.point_type]?.icon || FileText;
+
+  return (
+    <div 
+      ref={setNodeRef}
+      style={style}
+      className={cn(
+        "p-4 hover:bg-muted/30 transition-colors cursor-pointer animate-slide-up bg-card",
+        point.is_confidential && "border-l-2 border-l-status-warning",
+        isDragging && "shadow-lg"
+      )}
+    >
+      <div className="flex items-start gap-4">
+        {/* Drag handle */}
+        <div 
+          {...attributes} 
+          {...listeners}
+          className="flex items-center justify-center w-8 h-8 rounded-lg bg-muted flex-shrink-0 cursor-grab active:cursor-grabbing hover:bg-muted/80"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <GripVertical className="w-4 h-4 text-muted-foreground" />
+        </div>
+
+        {/* Order number */}
+        <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-primary/10 flex-shrink-0">
+          <span className="text-sm font-medium text-primary">{point.order || index + 1}</span>
+        </div>
+        
+        <div className="flex-1 min-w-0" onClick={onClick}>
+          <div className="flex items-center gap-2 mb-1">
+            {point.is_confidential && <Lock className="w-3.5 h-3.5 text-status-warning" />}
+            <h4 className="text-sm font-medium text-foreground truncate">{point.title}</h4>
+          </div>
+          <p className="text-sm text-muted-foreground line-clamp-1">{point.subject}</p>
+          <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
+            <span className="flex items-center gap-1">
+              <User className="w-3.5 h-3.5" />
+              {point.proposer?.name || 'Sem proponente'}
+            </span>
+            <span className="flex items-center gap-1">
+              <TypeIcon className={cn("w-3.5 h-3.5", pointTypeStyles[point.point_type]?.color || 'text-muted-foreground')} />
+              {point.point_type}
+            </span>
+          </div>
+        </div>
+        
+        <div className="flex items-center gap-3 flex-shrink-0">
+          <Badge variant="outline" className={cn("text-xs", priorityStyle)}>
+            {point.priority}
+          </Badge>
+          <Badge variant="outline" className={cn("text-xs", statusStyle.color)}>
+            {statusStyle.label}
+          </Badge>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+              <Button variant="ghost" size="icon" className="h-8 w-8">
+                <MoreHorizontal className="w-4 h-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onEdit(); }}>
+                <Pencil className="w-4 h-4 mr-2" />
+                Editar
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem className="text-destructive" onClick={(e) => { e.stopPropagation(); onDelete(); }}>
+                <Trash2 className="w-4 h-4 mr-2" />
+                Eliminar
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <ChevronRight className="w-4 h-4 text-muted-foreground" onClick={onClick} />
+        </div>
+      </div>
+    </div>
   );
 }
 
