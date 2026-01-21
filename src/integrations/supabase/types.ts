@@ -638,6 +638,89 @@ export type Database = {
         }
         Relationships: []
       }
+      protocols: {
+        Row: {
+          alteracoes: string | null
+          created_at: string
+          data_aprovacao: string | null
+          data_celebracao: string | null
+          data_producao_efeitos: string | null
+          data_termo: string | null
+          decisor: string | null
+          departamento_responsavel_id: string | null
+          divulgacao_conteudo: boolean
+          divulgacao_existencia: boolean
+          em_vigor: boolean
+          id: string
+          id_doc_plus: string | null
+          link_doc_plus: string | null
+          nome: string
+          objeto: string | null
+          observacoes: string | null
+          renovacao_automatica: boolean
+          tema: string | null
+          tipo_ambito: string | null
+          updated_at: string
+          versao: string | null
+        }
+        Insert: {
+          alteracoes?: string | null
+          created_at?: string
+          data_aprovacao?: string | null
+          data_celebracao?: string | null
+          data_producao_efeitos?: string | null
+          data_termo?: string | null
+          decisor?: string | null
+          departamento_responsavel_id?: string | null
+          divulgacao_conteudo?: boolean
+          divulgacao_existencia?: boolean
+          em_vigor?: boolean
+          id?: string
+          id_doc_plus?: string | null
+          link_doc_plus?: string | null
+          nome: string
+          objeto?: string | null
+          observacoes?: string | null
+          renovacao_automatica?: boolean
+          tema?: string | null
+          tipo_ambito?: string | null
+          updated_at?: string
+          versao?: string | null
+        }
+        Update: {
+          alteracoes?: string | null
+          created_at?: string
+          data_aprovacao?: string | null
+          data_celebracao?: string | null
+          data_producao_efeitos?: string | null
+          data_termo?: string | null
+          decisor?: string | null
+          departamento_responsavel_id?: string | null
+          divulgacao_conteudo?: boolean
+          divulgacao_existencia?: boolean
+          em_vigor?: boolean
+          id?: string
+          id_doc_plus?: string | null
+          link_doc_plus?: string | null
+          nome?: string
+          objeto?: string | null
+          observacoes?: string | null
+          renovacao_automatica?: boolean
+          tema?: string | null
+          tipo_ambito?: string | null
+          updated_at?: string
+          versao?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "protocols_departamento_responsavel_id_fkey"
+            columns: ["departamento_responsavel_id"]
+            isOneToOne: false
+            referencedRelation: "pelouros"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string
