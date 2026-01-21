@@ -312,6 +312,36 @@ export function useUpdateAgendaPoint() {
   });
 }
 
+export function useReorderAgendaPoints() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (updates: { id: string; order: number }[]) => {
+      // Update all points in parallel
+      const promises = updates.map(({ id, order }) =>
+        supabase
+          .from('agenda_points')
+          .update({ order })
+          .eq('id', id)
+      );
+      
+      const results = await Promise.all(promises);
+      const errors = results.filter(r => r.error);
+      
+      if (errors.length > 0) {
+        throw new Error('Erro ao reordenar alguns pontos');
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['agenda_points'] });
+      toast.success('Ordem atualizada com sucesso');
+    },
+    onError: (error) => {
+      toast.error('Erro ao reordenar pontos: ' + error.message);
+    },
+  });
+}
+
 export function useDeleteAgendaPoint() {
   const queryClient = useQueryClient();
   
