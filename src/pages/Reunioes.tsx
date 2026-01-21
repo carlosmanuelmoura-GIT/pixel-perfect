@@ -16,7 +16,10 @@ import {
   Trash2,
   Copy,
   FileText,
-  Lock
+  Lock,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown
 } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
@@ -92,6 +95,7 @@ const meetingStatuses: MeetingStatus[] = ['Preparação', 'Em Curso', 'Concluíd
 export default function Reunioes() {
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingMeeting, setEditingMeeting] = useState<Meeting | null>(null);
   const [deleteMeeting, setDeleteMeeting] = useState<Meeting | null>(null);
@@ -105,12 +109,19 @@ export default function Reunioes() {
   const duplicateMeetingMutation = useDuplicateMeeting();
 
   const filteredMeetings = useMemo(() => {
-    return meetings.filter(meeting => {
+    const filtered = meetings.filter(meeting => {
       if (typeFilter !== 'all' && meeting.type !== typeFilter) return false;
       if (statusFilter !== 'all' && meeting.status !== statusFilter) return false;
       return true;
     });
-  }, [meetings, typeFilter, statusFilter]);
+    
+    // Sort by date
+    return filtered.sort((a, b) => {
+      const dateA = new Date(a.date).getTime();
+      const dateB = new Date(b.date).getTime();
+      return sortOrder === 'desc' ? dateB - dateA : dateA - dateB;
+    });
+  }, [meetings, typeFilter, statusFilter, sortOrder]);
 
   const getParticipantNames = (participants?: Meeting['participants']) => {
     if (!participants) return '';
@@ -189,6 +200,27 @@ export default function Reunioes() {
                 <SelectItem value="Em Curso">Em Curso</SelectItem>
                 <SelectItem value="Concluída">Concluída</SelectItem>
                 <SelectItem value="Publicada">Publicada</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Select value={sortOrder} onValueChange={(v) => setSortOrder(v as 'asc' | 'desc')}>
+              <SelectTrigger className="w-[180px]">
+                <ArrowUpDown className="w-4 h-4 mr-2" />
+                <SelectValue placeholder="Ordenar por data" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="desc">
+                  <div className="flex items-center gap-2">
+                    <ArrowDown className="w-4 h-4" />
+                    Mais recentes primeiro
+                  </div>
+                </SelectItem>
+                <SelectItem value="asc">
+                  <div className="flex items-center gap-2">
+                    <ArrowUp className="w-4 h-4" />
+                    Mais antigas primeiro
+                  </div>
+                </SelectItem>
               </SelectContent>
             </Select>
           </div>
