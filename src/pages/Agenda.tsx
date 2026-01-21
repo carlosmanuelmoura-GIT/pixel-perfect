@@ -434,11 +434,15 @@ function AgendaPointDetailWithDecisions({
     f.name.toLowerCase().includes('documentação')
   );
 
-  // Other families for Detalhes tab (excluding DOC+)
-  const detailFamilies = families.filter(f => 
-    !f.name.toLowerCase().includes('doc') && 
-    !f.name.toLowerCase().includes('documentação')
-  );
+  // Other families for Detalhes tab (excluding DOC+, Análise Financeira, Indicadores)
+  const detailFamilies = families.filter(f => {
+    const name = f.name.toLowerCase();
+    return !name.includes('doc') && 
+           !name.includes('documentação') &&
+           !name.includes('análise financeira') &&
+           !name.includes('analise financeira') &&
+           !name.includes('indicadores');
+  });
 
   return (
     <Tabs value={activeTab} onValueChange={setActiveTab}>
