@@ -59,9 +59,9 @@ export default function Login() {
       <div className="hidden lg:flex lg:w-1/2 gradient-primary relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-primary/90 to-accent/50" />
         <div className="relative z-10 flex flex-col justify-center p-12 text-white">
-          <div className="flex items-center gap-3 mb-8">
-            <div className="w-14 h-14 rounded-xl bg-white/20 flex items-center justify-center overflow-hidden">
-              <img src={logoImage} alt="Logo" className="w-12 h-12 object-contain" />
+          <div className="flex items-center gap-4 mb-8">
+            <div className="w-20 h-20 rounded-xl bg-white/20 flex items-center justify-center overflow-hidden">
+              <img src={logoImage} alt="Logo" className="w-16 h-16 object-contain" />
             </div>
             <h1 className="text-2xl font-bold">Gestão Decisões CA</h1>
           </div>
