@@ -187,14 +187,25 @@ export default function Acoes() {
   const handleExport = async () => {
     setIsExporting(true);
     try {
-      const { data, error } = await supabase.functions.invoke('export-actions', {
-        body: { statuses: exportStatuses.length > 0 ? exportStatuses : null }
-      });
+      const response = await fetch(
+        `https://dgeijqteqrjlrxosermt.supabase.co/functions/v1/export-actions`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRnZWlqcXRlcXJqbHJ4b3Nlcm10Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgzMDE1OTEsImV4cCI6MjA4Mzg3NzU5MX0.V61QVk9okMC3iURQchPFhR4BqPESe8iZDdkCEeE3E4Y'}`,
+          },
+          body: JSON.stringify({ statuses: exportStatuses.length > 0 ? exportStatuses : null })
+        }
+      );
 
-      if (error) throw error;
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Erro ao exportar ações');
+      }
 
-      // Download the ZIP file
-      const blob = new Blob([data], { type: 'application/zip' });
+      // Download the ZIP file as binary
+      const blob = await response.blob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
