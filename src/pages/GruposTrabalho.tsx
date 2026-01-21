@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -40,6 +40,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Separator } from '@/components/ui/separator';
 import { 
   Plus, 
   Search, 
@@ -54,6 +55,7 @@ import {
 } from 'lucide-react';
 import { useGruposTrabalho, useCreateGrupoTrabalho, useUpdateGrupoTrabalho, useDeleteGrupoTrabalho } from '@/hooks/useGruposTrabalho';
 import { useEntregaveis, useCreateEntregavel, useUpdateEntregavel, useDeleteEntregavel } from '@/hooks/useEntregaveis';
+import { useMeetings, useAgendaPoints, useDecisions } from '@/hooks/useSupabaseData';
 import { format } from 'date-fns';
 import { pt } from 'date-fns/locale';
 
@@ -68,8 +70,20 @@ interface GrupoTrabalho {
   tema: string | null;
   divulgar_existencia: boolean;
   observacoes_secap: string | null;
+  criacao_meeting_id: string | null;
+  criacao_agenda_point_id: string | null;
+  criacao_decision_id: string | null;
+  fecho_meeting_id: string | null;
+  fecho_agenda_point_id: string | null;
+  fecho_decision_id: string | null;
   created_at: string;
   updated_at: string;
+  criacao_meeting?: { id: string; date: string; type: string } | null;
+  criacao_agenda_point?: { id: string; title: string } | null;
+  criacao_decision?: { id: string; text: string } | null;
+  fecho_meeting?: { id: string; date: string; type: string } | null;
+  fecho_agenda_point?: { id: string; title: string } | null;
+  fecho_decision?: { id: string; text: string } | null;
 }
 
 interface Entregavel {
@@ -108,13 +122,19 @@ const deliverableStatusColors: Record<DeliverableStatus, string> = {
   'Entregue': 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300',
 };
 
-const emptyGrupo: Omit<GrupoTrabalho, 'id' | 'created_at' | 'updated_at'> = {
+const emptyGrupo: Omit<GrupoTrabalho, 'id' | 'created_at' | 'updated_at' | 'criacao_meeting' | 'criacao_agenda_point' | 'criacao_decision' | 'fecho_meeting' | 'fecho_agenda_point' | 'fecho_decision'> = {
   codigo: '',
   status: 'aberto',
   designacao: '',
   tema: '',
   divulgar_existencia: false,
   observacoes_secap: '',
+  criacao_meeting_id: null,
+  criacao_agenda_point_id: null,
+  criacao_decision_id: null,
+  fecho_meeting_id: null,
+  fecho_agenda_point_id: null,
+  fecho_decision_id: null,
 };
 
 const emptyEntregavel: Omit<Entregavel, 'id' | 'grupo_trabalho_id' | 'created_at' | 'updated_at'> = {
@@ -146,14 +166,36 @@ export default function GruposTrabalho() {
   const [deleteGrupoId, setDeleteGrupoId] = useState<string | null>(null);
   const [deleteEntregavelId, setDeleteEntregavelId] = useState<string | null>(null);
 
+  // Selected meeting IDs for cascading dropdowns
+  const [selectedCriacaoMeetingId, setSelectedCriacaoMeetingId] = useState<string>('');
+  const [selectedCriacaoAgendaPointId, setSelectedCriacaoAgendaPointId] = useState<string>('');
+  const [selectedFechoMeetingId, setSelectedFechoMeetingId] = useState<string>('');
+  const [selectedFechoAgendaPointId, setSelectedFechoAgendaPointId] = useState<string>('');
+
   const { data: grupos = [], isLoading: loadingGrupos } = useGruposTrabalho();
-  const { data: entregaveis = [], isLoading: loadingEntregaveis } = useEntregaveis();
+  const { data: entregaveis = [] } = useEntregaveis();
+  const { data: meetings = [] } = useMeetings();
   const createGrupo = useCreateGrupoTrabalho();
   const updateGrupo = useUpdateGrupoTrabalho();
   const deleteGrupo = useDeleteGrupoTrabalho();
   const createEntregavel = useCreateEntregavel();
   const updateEntregavel = useUpdateEntregavel();
   const deleteEntregavel = useDeleteEntregavel();
+
+  // Filter only CA meetings
+  const caMeetings = useMemo(() => 
+    meetings.filter(m => m.type === 'CA').sort((a, b) => 
+      new Date(b.date).getTime() - new Date(a.date).getTime()
+    ), [meetings]
+  );
+
+  // Agenda points for creation cascading dropdown
+  const { data: criacaoAgendaPoints = [] } = useAgendaPoints(selectedCriacaoMeetingId || undefined);
+  const { data: criacaoDecisions = [] } = useDecisions(selectedCriacaoAgendaPointId || undefined);
+
+  // Agenda points for closure cascading dropdown
+  const { data: fechoAgendaPoints = [] } = useAgendaPoints(selectedFechoMeetingId || undefined);
+  const { data: fechoDecisions = [] } = useDecisions(selectedFechoAgendaPointId || undefined);
 
   const filteredGrupos = grupos.filter((grupo) => {
     const matchesSearch = 
@@ -190,10 +232,24 @@ export default function GruposTrabalho() {
         tema: grupo.tema || '',
         divulgar_existencia: grupo.divulgar_existencia,
         observacoes_secap: grupo.observacoes_secap || '',
+        criacao_meeting_id: grupo.criacao_meeting_id,
+        criacao_agenda_point_id: grupo.criacao_agenda_point_id,
+        criacao_decision_id: grupo.criacao_decision_id,
+        fecho_meeting_id: grupo.fecho_meeting_id,
+        fecho_agenda_point_id: grupo.fecho_agenda_point_id,
+        fecho_decision_id: grupo.fecho_decision_id,
       });
+      setSelectedCriacaoMeetingId(grupo.criacao_meeting_id || '');
+      setSelectedCriacaoAgendaPointId(grupo.criacao_agenda_point_id || '');
+      setSelectedFechoMeetingId(grupo.fecho_meeting_id || '');
+      setSelectedFechoAgendaPointId(grupo.fecho_agenda_point_id || '');
     } else {
       setEditingGrupo(null);
       setGrupoFormData(emptyGrupo);
+      setSelectedCriacaoMeetingId('');
+      setSelectedCriacaoAgendaPointId('');
+      setSelectedFechoMeetingId('');
+      setSelectedFechoAgendaPointId('');
     }
     setIsGrupoDialogOpen(true);
   };
@@ -231,6 +287,12 @@ export default function GruposTrabalho() {
       tema: grupoFormData.tema || null,
       divulgar_existencia: grupoFormData.divulgar_existencia,
       observacoes_secap: grupoFormData.observacoes_secap || null,
+      criacao_meeting_id: grupoFormData.criacao_meeting_id || null,
+      criacao_agenda_point_id: grupoFormData.criacao_agenda_point_id || null,
+      criacao_decision_id: grupoFormData.criacao_decision_id || null,
+      fecho_meeting_id: grupoFormData.fecho_meeting_id || null,
+      fecho_agenda_point_id: grupoFormData.fecho_agenda_point_id || null,
+      fecho_decision_id: grupoFormData.fecho_decision_id || null,
     };
 
     if (editingGrupo) {
@@ -601,6 +663,198 @@ export default function GruposTrabalho() {
                 placeholder="Observações internas..."
                 rows={3}
               />
+            </div>
+
+            <Separator className="my-4" />
+
+            {/* Creation Association Section */}
+            <div className="space-y-4">
+              <h4 className="font-medium text-sm">Associação à Criação</h4>
+              <div className="grid grid-cols-1 gap-4">
+                <div className="space-y-2">
+                  <Label>Reunião CA</Label>
+                  <Select
+                    value={selectedCriacaoMeetingId || "_none"}
+                    onValueChange={(value) => {
+                      const actualValue = value === "_none" ? '' : value;
+                      setSelectedCriacaoMeetingId(actualValue);
+                      setSelectedCriacaoAgendaPointId('');
+                      setGrupoFormData({
+                        ...grupoFormData,
+                        criacao_meeting_id: actualValue || null,
+                        criacao_agenda_point_id: null,
+                        criacao_decision_id: null,
+                      });
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecionar reunião..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="_none">Nenhuma</SelectItem>
+                      {caMeetings.map((meeting) => (
+                        <SelectItem key={meeting.id} value={meeting.id}>
+                          {meeting.type} - {format(new Date(meeting.date), 'dd/MM/yyyy', { locale: pt })}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {selectedCriacaoMeetingId && (
+                  <div className="space-y-2">
+                    <Label>Ponto de Agenda</Label>
+                    <Select
+                      value={grupoFormData.criacao_agenda_point_id || "_none"}
+                      onValueChange={(value) => {
+                        const actualValue = value === "_none" ? '' : value;
+                        setSelectedCriacaoAgendaPointId(actualValue);
+                        setGrupoFormData({
+                          ...grupoFormData,
+                          criacao_agenda_point_id: actualValue || null,
+                          criacao_decision_id: null,
+                        });
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecionar ponto de agenda..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="_none">Nenhum</SelectItem>
+                        {criacaoAgendaPoints.map((point) => (
+                          <SelectItem key={point.id} value={point.id}>
+                            {point.title}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+
+                {selectedCriacaoAgendaPointId && (
+                  <div className="space-y-2">
+                    <Label>Decisão</Label>
+                    <Select
+                      value={grupoFormData.criacao_decision_id || "_none"}
+                      onValueChange={(value) => {
+                        const actualValue = value === "_none" ? '' : value;
+                        setGrupoFormData({
+                          ...grupoFormData,
+                          criacao_decision_id: actualValue || null,
+                        });
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecionar decisão..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="_none">Nenhuma</SelectItem>
+                        {criacaoDecisions.map((decision) => (
+                          <SelectItem key={decision.id} value={decision.id}>
+                            {decision.text.length > 60 ? decision.text.substring(0, 60) + '...' : decision.text}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <Separator className="my-4" />
+
+            {/* Closure Association Section */}
+            <div className="space-y-4">
+              <h4 className="font-medium text-sm">Associação ao Fecho</h4>
+              <div className="grid grid-cols-1 gap-4">
+                <div className="space-y-2">
+                  <Label>Reunião CA</Label>
+                  <Select
+                    value={selectedFechoMeetingId || "_none"}
+                    onValueChange={(value) => {
+                      const actualValue = value === "_none" ? '' : value;
+                      setSelectedFechoMeetingId(actualValue);
+                      setSelectedFechoAgendaPointId('');
+                      setGrupoFormData({
+                        ...grupoFormData,
+                        fecho_meeting_id: actualValue || null,
+                        fecho_agenda_point_id: null,
+                        fecho_decision_id: null,
+                      });
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecionar reunião..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="_none">Nenhuma</SelectItem>
+                      {caMeetings.map((meeting) => (
+                        <SelectItem key={meeting.id} value={meeting.id}>
+                          {meeting.type} - {format(new Date(meeting.date), 'dd/MM/yyyy', { locale: pt })}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {selectedFechoMeetingId && (
+                  <div className="space-y-2">
+                    <Label>Ponto de Agenda</Label>
+                    <Select
+                      value={grupoFormData.fecho_agenda_point_id || "_none"}
+                      onValueChange={(value) => {
+                        const actualValue = value === "_none" ? '' : value;
+                        setSelectedFechoAgendaPointId(actualValue);
+                        setGrupoFormData({
+                          ...grupoFormData,
+                          fecho_agenda_point_id: actualValue || null,
+                          fecho_decision_id: null,
+                        });
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecionar ponto de agenda..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="_none">Nenhum</SelectItem>
+                        {fechoAgendaPoints.map((point) => (
+                          <SelectItem key={point.id} value={point.id}>
+                            {point.title}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+
+                {selectedFechoAgendaPointId && (
+                  <div className="space-y-2">
+                    <Label>Decisão</Label>
+                    <Select
+                      value={grupoFormData.fecho_decision_id || "_none"}
+                      onValueChange={(value) => {
+                        const actualValue = value === "_none" ? '' : value;
+                        setGrupoFormData({
+                          ...grupoFormData,
+                          fecho_decision_id: actualValue || null,
+                        });
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecionar decisão..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="_none">Nenhuma</SelectItem>
+                        {fechoDecisions.map((decision) => (
+                          <SelectItem key={decision.id} value={decision.id}>
+                            {decision.text.length > 60 ? decision.text.substring(0, 60) + '...' : decision.text}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
