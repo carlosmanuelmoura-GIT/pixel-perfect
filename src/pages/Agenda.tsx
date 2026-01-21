@@ -1,4 +1,5 @@
-import { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 import { useSearchParams } from 'react-router-dom';
 import { format } from 'date-fns';
 import { pt } from 'date-fns/locale';
@@ -20,8 +21,12 @@ import {
   MessageSquare,
   FolderOpen,
   Flag,
-  BarChart3,
   Save,
+  Upload,
+  FileUp,
+  Download,
+  Trash2 as TrashIcon,
+  File,
   Briefcase
 } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -417,20 +422,10 @@ function AgendaPointDetailWithDecisions({
     f.name.toLowerCase().includes('documentação')
   );
 
-  // Filter families for Indicador tab
-  const indicadorFamilies = families.filter(f => 
-    f.name.toLowerCase().includes('indicador') || 
-    f.name.toLowerCase().includes('kpi') ||
-    f.name.toLowerCase().includes('métricas')
-  );
-
-  // Other families for Detalhes tab (excluding DOC+ and Indicador)
+  // Other families for Detalhes tab (excluding DOC+)
   const detailFamilies = families.filter(f => 
     !f.name.toLowerCase().includes('doc') && 
-    !f.name.toLowerCase().includes('documentação') &&
-    !f.name.toLowerCase().includes('indicador') &&
-    !f.name.toLowerCase().includes('kpi') &&
-    !f.name.toLowerCase().includes('métricas')
+    !f.name.toLowerCase().includes('documentação')
   );
 
   return (
@@ -440,9 +435,9 @@ function AgendaPointDetailWithDecisions({
           <FileText className="w-3 h-3 mr-1" />
           Detalhes
         </TabsTrigger>
-        <TabsTrigger value="indicador" className="text-xs px-2 py-2">
-          <BarChart3 className="w-3 h-3 mr-1" />
-          Indicador
+        <TabsTrigger value="ficha" className="text-xs px-2 py-2">
+          <File className="w-3 h-3 mr-1" />
+          Ficha
         </TabsTrigger>
         <TabsTrigger value="precedentes" className="text-xs px-2 py-2">
           <History className="w-3 h-3 mr-1" />
@@ -476,14 +471,12 @@ function AgendaPointDetailWithDecisions({
         />
       </TabsContent>
 
-      {/* Tab: Indicador */}
-      <TabsContent value="indicador" className="mt-4">
-        <EditableAttributesTab 
+      {/* Tab: Ficha do Ponto de Agenda */}
+      <TabsContent value="ficha" className="mt-4">
+        <FichaTab 
           point={point} 
-          families={indicadorFamilies} 
-          attributes={pointAttributes}
-          upsertAttribute={upsertAttribute}
-          emptyMessage="Nenhuma família de indicadores configurada. Configure famílias com 'Indicador', 'KPI' ou 'Métricas' no nome."
+          extraData={extraData}
+          upsertExtraData={upsertExtraData}
         />
       </TabsContent>
 
@@ -876,6 +869,194 @@ function EditableAttributesTab({
           Guardar
         </Button>
       </div>
+    </div>
+  );
+}
+
+// Ficha Tab Component - For uploading Word documents
+function FichaTab({
+  point,
+  extraData,
+  upsertExtraData
+}: {
+  point: AgendaPoint;
+  extraData: any;
+  upsertExtraData: any;
+}) {
+  const [isUploading, setIsUploading] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  const currentFilePath = extraData?.ficha_file_path;
+  const hasFile = !!currentFilePath;
+  
+  const getFileName = (path: string) => {
+    if (!path) return '';
+    const parts = path.split('/');
+    return parts[parts.length - 1];
+  };
+
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type - only Word documents
+    const allowedTypes = [
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+    ];
+    if (!allowedTypes.includes(file.type)) {
+      alert('Por favor selecione um documento Word (.doc ou .docx)');
+      return;
+    }
+
+    setIsUploading(true);
+    try {
+      const filePath = `${point.id}/${Date.now()}_${file.name}`;
+      
+      const { data, error } = await supabase.storage
+        .from('agenda-point-files')
+        .upload(filePath, file, { upsert: true });
+      
+      if (error) throw error;
+
+      // Save file path to extra data
+      await upsertExtraData.mutateAsync({
+        agenda_point_id: point.id,
+        ficha_file_path: data.path
+      });
+    } catch (error) {
+      console.error('Upload error:', error);
+      alert('Erro ao carregar ficheiro');
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  const handleDownload = async () => {
+    if (!currentFilePath) return;
+    
+    const { data, error } = await supabase.storage
+      .from('agenda-point-files')
+      .download(currentFilePath);
+    
+    if (error) {
+      console.error('Download error:', error);
+      alert('Erro ao descarregar ficheiro');
+      return;
+    }
+
+    // Create download link
+    const url = URL.createObjectURL(data);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = getFileName(currentFilePath);
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleDelete = async () => {
+    if (!currentFilePath) return;
+    
+    setIsDeleting(true);
+    try {
+      const { error } = await supabase.storage
+        .from('agenda-point-files')
+        .remove([currentFilePath]);
+      
+      if (error) throw error;
+
+      // Clear file path from extra data
+      await upsertExtraData.mutateAsync({
+        agenda_point_id: point.id,
+        ficha_file_path: null
+      });
+    } catch (error) {
+      console.error('Delete error:', error);
+      alert('Erro ao eliminar ficheiro');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <Label className="text-base font-medium">Ficha do Ponto de Agenda</Label>
+        <p className="text-sm text-muted-foreground mt-1">
+          Carregue o documento Word preparado pela equipa do secretariado.
+        </p>
+      </div>
+
+      {hasFile ? (
+        <div className="border rounded-lg p-4 space-y-4">
+          <div className="flex items-center gap-3">
+            <File className="w-10 h-10 text-primary" />
+            <div className="flex-1">
+              <p className="font-medium">{getFileName(currentFilePath)}</p>
+              <p className="text-sm text-muted-foreground">Documento Word</p>
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={handleDownload}>
+              <Download className="w-4 h-4 mr-2" />
+              Descarregar
+            </Button>
+            <Button 
+              variant="outline" 
+              className="text-destructive hover:text-destructive"
+              onClick={handleDelete}
+              disabled={isDeleting}
+            >
+              {isDeleting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <TrashIcon className="w-4 h-4 mr-2" />}
+              Eliminar
+            </Button>
+          </div>
+          
+          <div className="border-t pt-4">
+            <Label className="text-sm text-muted-foreground">Substituir ficheiro</Label>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".doc,.docx,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+              onChange={handleUpload}
+              className="mt-2 block w-full text-sm text-muted-foreground
+                file:mr-4 file:py-2 file:px-4
+                file:rounded-md file:border-0
+                file:text-sm file:font-medium
+                file:bg-primary file:text-primary-foreground
+                hover:file:bg-primary/90
+                file:cursor-pointer cursor-pointer"
+              disabled={isUploading}
+            />
+          </div>
+        </div>
+      ) : (
+        <div className="border-2 border-dashed rounded-lg p-8 text-center">
+          <FileUp className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+          <p className="text-muted-foreground mb-4">
+            Arraste um documento Word ou clique para selecionar
+          </p>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".doc,.docx,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+            onChange={handleUpload}
+            className="hidden"
+            id="ficha-upload"
+            disabled={isUploading}
+          />
+          <Button asChild disabled={isUploading}>
+            <label htmlFor="ficha-upload" className="cursor-pointer">
+              {isUploading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Upload className="w-4 h-4 mr-2" />}
+              {isUploading ? 'A carregar...' : 'Selecionar Ficheiro'}
+            </label>
+          </Button>
+        </div>
+      )}
     </div>
   );
 }
