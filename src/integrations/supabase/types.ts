@@ -741,12 +741,14 @@ export type Database = {
       }
       protocols: {
         Row: {
+          agenda_point_id: string | null
           alteracoes: string | null
           created_at: string
           data_aprovacao: string | null
           data_celebracao: string | null
           data_producao_efeitos: string | null
           data_termo: string | null
+          decision_id: string | null
           decisor: string | null
           departamento_responsavel_id: string | null
           divulgacao_conteudo: boolean
@@ -755,6 +757,7 @@ export type Database = {
           id: string
           id_doc_plus: string | null
           link_doc_plus: string | null
+          meeting_id: string | null
           nome: string
           objeto: string | null
           observacoes: string | null
@@ -765,12 +768,14 @@ export type Database = {
           versao: string | null
         }
         Insert: {
+          agenda_point_id?: string | null
           alteracoes?: string | null
           created_at?: string
           data_aprovacao?: string | null
           data_celebracao?: string | null
           data_producao_efeitos?: string | null
           data_termo?: string | null
+          decision_id?: string | null
           decisor?: string | null
           departamento_responsavel_id?: string | null
           divulgacao_conteudo?: boolean
@@ -779,6 +784,7 @@ export type Database = {
           id?: string
           id_doc_plus?: string | null
           link_doc_plus?: string | null
+          meeting_id?: string | null
           nome: string
           objeto?: string | null
           observacoes?: string | null
@@ -789,12 +795,14 @@ export type Database = {
           versao?: string | null
         }
         Update: {
+          agenda_point_id?: string | null
           alteracoes?: string | null
           created_at?: string
           data_aprovacao?: string | null
           data_celebracao?: string | null
           data_producao_efeitos?: string | null
           data_termo?: string | null
+          decision_id?: string | null
           decisor?: string | null
           departamento_responsavel_id?: string | null
           divulgacao_conteudo?: boolean
@@ -803,6 +811,7 @@ export type Database = {
           id?: string
           id_doc_plus?: string | null
           link_doc_plus?: string | null
+          meeting_id?: string | null
           nome?: string
           objeto?: string | null
           observacoes?: string | null
@@ -814,10 +823,31 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "protocols_agenda_point_id_fkey"
+            columns: ["agenda_point_id"]
+            isOneToOne: false
+            referencedRelation: "agenda_points"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "protocols_decision_id_fkey"
+            columns: ["decision_id"]
+            isOneToOne: false
+            referencedRelation: "decisions"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "protocols_departamento_responsavel_id_fkey"
             columns: ["departamento_responsavel_id"]
             isOneToOne: false
             referencedRelation: "pelouros"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "protocols_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "meetings"
             referencedColumns: ["id"]
           },
         ]
