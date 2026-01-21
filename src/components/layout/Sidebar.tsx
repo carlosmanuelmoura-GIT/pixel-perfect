@@ -9,11 +9,11 @@ import {
   ChevronLeft,
   ChevronRight,
   Users,
-  FileText,
   Handshake,
   Users2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import logoImage from '@/assets/logo-board-meeting.png';
 
 interface NavItem {
   icon: React.ElementType;
@@ -51,8 +51,8 @@ export function Sidebar() {
         "flex items-center h-16 px-4 border-b border-sidebar-border",
         collapsed ? "justify-center" : "gap-3"
       )}>
-        <div className="w-9 h-9 rounded-lg gradient-primary flex items-center justify-center flex-shrink-0">
-          <FileText className="w-5 h-5 text-sidebar-primary-foreground" />
+        <div className="w-10 h-10 rounded-lg bg-white/10 flex items-center justify-center flex-shrink-0 overflow-hidden">
+          <img src={logoImage} alt="Logo" className="w-8 h-8 object-contain" />
         </div>
         {!collapsed && (
           <div className="animate-fade-in">
