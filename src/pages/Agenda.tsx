@@ -347,6 +347,11 @@ function AgendaPointDetailWithDecisions({
   
   // Selected administrators for attendance
   const [selectedAdministrators, setSelectedAdministrators] = useState<string[]>([]);
+  
+  // Presenças de outros órgãos
+  const [presencaSec, setPresencaSec] = useState(false);
+  const [presencaConselheiroGeral, setPresencaConselheiroGeral] = useState(false);
+  const [presencaConselhoAuditoria, setPresencaConselhoAuditoria] = useState(false);
 
   const createDecision = useCreateDecision();
   const updateDecision = useUpdateDecision();
@@ -566,7 +571,92 @@ function AgendaPointDetailWithDecisions({
           )}
         </div>
 
-        {/* Separador visual */}
+        {/* Separador visual - Outros Órgãos */}
+        <div className="relative">
+          <div className="absolute inset-0 flex items-center">
+            <span className="w-full border-t border-border" />
+          </div>
+          <div className="relative flex justify-center text-xs uppercase">
+            <span className="bg-background px-3 text-muted-foreground">Outros Órgãos</span>
+          </div>
+        </div>
+
+        {/* Secção: SEC, Conselheiro Geral, Conselho de Auditoria */}
+        <div className="space-y-4">
+          <div>
+            <Label className="text-base font-medium flex items-center gap-2">
+              <Users className="w-4 h-4" />
+              Presenças de Órgãos
+            </Label>
+            <p className="text-sm text-muted-foreground mb-4">
+              Indique a presença dos seguintes órgãos neste ponto de agenda.
+            </p>
+          </div>
+          
+          <div className="grid grid-cols-3 gap-4">
+            {/* SEC */}
+            <div 
+              className={cn(
+                "p-4 border rounded-lg cursor-pointer transition-colors",
+                presencaSec ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"
+              )}
+              onClick={() => setPresencaSec(!presencaSec)}
+            >
+              <div className="flex items-center gap-3">
+                <Checkbox
+                  checked={presencaSec}
+                  onCheckedChange={(checked) => setPresencaSec(checked === true)}
+                />
+                <div>
+                  <p className="font-medium">SEC</p>
+                  <p className="text-sm text-muted-foreground">Secretariado</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Conselheiro Geral */}
+            <div 
+              className={cn(
+                "p-4 border rounded-lg cursor-pointer transition-colors",
+                presencaConselheiroGeral ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"
+              )}
+              onClick={() => setPresencaConselheiroGeral(!presencaConselheiroGeral)}
+            >
+              <div className="flex items-center gap-3">
+                <Checkbox
+                  checked={presencaConselheiroGeral}
+                  onCheckedChange={(checked) => setPresencaConselheiroGeral(checked === true)}
+                />
+                <div>
+                  <p className="font-medium">Conselheiro Geral</p>
+                  <p className="text-sm text-muted-foreground">Conselho Geral</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Conselho de Auditoria */}
+            <div 
+              className={cn(
+                "p-4 border rounded-lg cursor-pointer transition-colors",
+                presencaConselhoAuditoria ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"
+              )}
+              onClick={() => setPresencaConselhoAuditoria(!presencaConselhoAuditoria)}
+            >
+              <div className="flex items-center gap-3">
+                <Checkbox
+                  checked={presencaConselhoAuditoria}
+                  onCheckedChange={(checked) => setPresencaConselhoAuditoria(checked === true)}
+                />
+                <div>
+                  <p className="font-medium">Conselho de Auditoria</p>
+                  <p className="text-sm text-muted-foreground">Órgão de fiscalização</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Separador visual - Departamentos */}
         <div className="relative">
           <div className="absolute inset-0 flex items-center">
             <span className="w-full border-t border-border" />
