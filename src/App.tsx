@@ -14,6 +14,7 @@ import Acoes from "./pages/Acoes";
 import Indicadores from "./pages/Indicadores";
 import Administradores from "./pages/Administradores";
 import Protocolos from "./pages/Protocolos";
+import GruposTrabalho from "./pages/GruposTrabalho";
 import Login from "./pages/Login";
 import Registar from "./pages/Registar";
 import Unauthorized from "./pages/Unauthorized";
@@ -88,6 +89,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <Protocolos />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/grupos-trabalho"
+              element={
+                <ProtectedRoute>
+                  <GruposTrabalho />
                 </ProtectedRoute>
               }
             />
