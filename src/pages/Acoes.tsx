@@ -101,6 +101,9 @@ export default function Acoes() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingAction, setEditingAction] = useState<Action | null>(null);
   const [deleteAction, setDeleteAction] = useState<Action | null>(null);
+  const [progressAction, setProgressAction] = useState<Action | null>(null);
+  const [viewDecisionAction, setViewDecisionAction] = useState<Action | null>(null);
+  const [progressValue, setProgressValue] = useState<number>(0);
   
   const { data: actions = [], isLoading } = useActions();
   const { data: pelouros = [] } = usePelouros();
@@ -137,6 +140,33 @@ export default function Acoes() {
       await deleteActionMutation.mutateAsync(deleteAction.id);
       setDeleteAction(null);
     }
+  };
+
+  const handleOpenProgress = (action: Action) => {
+    setProgressValue(action.progress);
+    setProgressAction(action);
+  };
+
+  const handleUpdateProgress = async () => {
+    if (progressAction) {
+      await updateAction.mutateAsync({ 
+        id: progressAction.id, 
+        progress: progressValue,
+        status: progressValue === 100 ? 'Concluída' : progressAction.status === 'Por iniciar' && progressValue > 0 ? 'Em curso' : progressAction.status
+      });
+      setProgressAction(null);
+    }
+  };
+
+  const handleViewDecision = (action: Action) => {
+    const decision = decisions.find(d => d.id === action.decision_id);
+    if (decision) {
+      setViewDecisionAction(action);
+    }
+  };
+
+  const getDecisionForAction = (action: Action) => {
+    return decisions.find(d => d.id === action.decision_id);
   };
 
   if (isLoading) {
@@ -217,6 +247,8 @@ export default function Acoes() {
                         index={index}
                         onEdit={() => handleEdit(action)}
                         onDelete={() => setDeleteAction(action)}
+                        onUpdateProgress={() => handleOpenProgress(action)}
+                        onViewDecision={() => handleViewDecision(action)}
                       />
                     ))}
                     
@@ -242,6 +274,8 @@ export default function Acoes() {
                   index={index}
                   onEdit={() => handleEdit(action)}
                   onDelete={() => setDeleteAction(action)}
+                  onUpdateProgress={() => handleOpenProgress(action)}
+                  onViewDecision={() => handleViewDecision(action)}
                 />
               ))}
             </div>
@@ -279,6 +313,94 @@ export default function Acoes() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Update Progress Dialog */}
+      <Dialog open={!!progressAction} onOpenChange={(open) => !open && setProgressAction(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Atualizar Progresso</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-6 py-4">
+            <p className="text-sm text-muted-foreground line-clamp-2">{progressAction?.description}</p>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <Label>Progresso</Label>
+                <span className="text-2xl font-bold text-primary">{progressValue}%</span>
+              </div>
+              <Slider
+                value={[progressValue]}
+                onValueChange={(v) => setProgressValue(v[0])}
+                max={100}
+                step={5}
+                className="w-full"
+              />
+              <div className="flex justify-between text-xs text-muted-foreground">
+                <span>0%</span>
+                <span>50%</span>
+                <span>100%</span>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setProgressAction(null)}>Cancelar</Button>
+            <Button onClick={handleUpdateProgress} disabled={updateAction.isPending}>
+              {updateAction.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+              Guardar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* View Decision Dialog */}
+      <Dialog open={!!viewDecisionAction} onOpenChange={(open) => !open && setViewDecisionAction(null)}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Decisão Associada</DialogTitle>
+          </DialogHeader>
+          {viewDecisionAction && getDecisionForAction(viewDecisionAction) && (
+            <div className="space-y-4 py-4">
+              <div className="p-4 border rounded-lg space-y-3">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Gavel className="w-4 h-4" />
+                  <span className="font-medium">Decisão</span>
+                </div>
+                <p className="text-foreground">{getDecisionForAction(viewDecisionAction)?.text}</p>
+                <div className="flex gap-2 flex-wrap">
+                  <Badge variant="outline">{getDecisionForAction(viewDecisionAction)?.type}</Badge>
+                  <Badge variant="outline">{getDecisionForAction(viewDecisionAction)?.criticality}</Badge>
+                  <Badge variant="outline">{getDecisionForAction(viewDecisionAction)?.vote_mode}</Badge>
+                </div>
+                {getDecisionForAction(viewDecisionAction)?.deliberation && (
+                  <p className="text-sm text-muted-foreground">{getDecisionForAction(viewDecisionAction)?.deliberation}</p>
+                )}
+              </div>
+
+              {getDecisionForAction(viewDecisionAction)?.agenda_point && (
+                <div className="p-4 border rounded-lg space-y-3">
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <FileText className="w-4 h-4" />
+                    <span className="font-medium">Ponto de Agenda</span>
+                  </div>
+                  <p className="font-medium text-foreground">{getDecisionForAction(viewDecisionAction)?.agenda_point?.title}</p>
+                  <p className="text-sm text-muted-foreground">{getDecisionForAction(viewDecisionAction)?.agenda_point?.subject}</p>
+                  
+                  {getDecisionForAction(viewDecisionAction)?.agenda_point?.meeting && (
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground mt-2">
+                      <Calendar className="w-3.5 h-3.5" />
+                      <span>
+                        {getDecisionForAction(viewDecisionAction)?.agenda_point?.meeting?.type} - {format(new Date(getDecisionForAction(viewDecisionAction)?.agenda_point?.meeting?.date || ''), "dd/MM/yyyy", { locale: pt })}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setViewDecisionAction(null)}>Fechar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AppLayout>
   );
 }
@@ -654,7 +776,7 @@ function ActionForm({
   );
 }
 
-function ActionCard({ action, index, onEdit, onDelete }: { action: Action; index: number; onEdit: () => void; onDelete: () => void }) {
+function ActionCard({ action, index, onEdit, onDelete, onUpdateProgress, onViewDecision }: { action: Action; index: number; onEdit: () => void; onDelete: () => void; onUpdateProgress: () => void; onViewDecision: () => void }) {
   const now = new Date();
   const deadline = new Date(action.deadline);
   const daysUntilDeadline = differenceInDays(deadline, now);
@@ -706,8 +828,14 @@ function ActionCard({ action, index, onEdit, onDelete }: { action: Action; index
               <Pencil className="w-4 h-4 mr-2" />
               Editar
             </DropdownMenuItem>
-            <DropdownMenuItem>Atualizar Progresso</DropdownMenuItem>
-            <DropdownMenuItem>Ver Decisão</DropdownMenuItem>
+            <DropdownMenuItem onClick={onUpdateProgress}>
+              <Clock className="w-4 h-4 mr-2" />
+              Atualizar Progresso
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={onViewDecision}>
+              <Gavel className="w-4 h-4 mr-2" />
+              Ver Decisão
+            </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem className="text-destructive" onClick={onDelete}>
               <Trash2 className="w-4 h-4 mr-2" />
@@ -720,7 +848,7 @@ function ActionCard({ action, index, onEdit, onDelete }: { action: Action; index
   );
 }
 
-function ActionRow({ action, index, onEdit, onDelete }: { action: Action; index: number; onEdit: () => void; onDelete: () => void }) {
+function ActionRow({ action, index, onEdit, onDelete, onUpdateProgress, onViewDecision }: { action: Action; index: number; onEdit: () => void; onDelete: () => void; onUpdateProgress: () => void; onViewDecision: () => void }) {
   const now = new Date();
   const deadline = new Date(action.deadline);
   const daysUntilDeadline = differenceInDays(deadline, now);
@@ -757,8 +885,14 @@ function ActionRow({ action, index, onEdit, onDelete }: { action: Action; index:
                 <Pencil className="w-4 h-4 mr-2" />
                 Editar
               </DropdownMenuItem>
-              <DropdownMenuItem>Atualizar Progresso</DropdownMenuItem>
-              <DropdownMenuItem>Ver Decisão</DropdownMenuItem>
+              <DropdownMenuItem onClick={onUpdateProgress}>
+                <Clock className="w-4 h-4 mr-2" />
+                Atualizar Progresso
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={onViewDecision}>
+                <Gavel className="w-4 h-4 mr-2" />
+                Ver Decisão
+              </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem className="text-destructive" onClick={onDelete}>
                 <Trash2 className="w-4 h-4 mr-2" />
