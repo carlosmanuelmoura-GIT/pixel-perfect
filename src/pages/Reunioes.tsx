@@ -1,5 +1,5 @@
-import { useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useMemo, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { format } from 'date-fns';
 import { pt } from 'date-fns/locale';
 import { 
@@ -101,12 +101,27 @@ export default function Reunioes() {
   const [deleteMeeting, setDeleteMeeting] = useState<Meeting | null>(null);
   const [selectedMeeting, setSelectedMeeting] = useState<Meeting | null>(null);
   const [duplicateMeetingData, setDuplicateMeetingData] = useState<{ meeting: Meeting; newDate: string } | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
   
   const { data: meetings = [], isLoading } = useMeetings();
   const createMeeting = useCreateMeeting();
   const updateMeeting = useUpdateMeeting();
   const deleteMeetingMutation = useDeleteMeeting();
   const duplicateMeetingMutation = useDuplicateMeeting();
+
+  // Handle URL query parameter for direct meeting navigation
+  useEffect(() => {
+    const meetingId = searchParams.get('meeting');
+    if (meetingId && meetings.length > 0) {
+      const meeting = meetings.find(m => m.id === meetingId);
+      if (meeting) {
+        setSelectedMeeting(meeting);
+        // Clear the URL param after opening
+        searchParams.delete('meeting');
+        setSearchParams(searchParams);
+      }
+    }
+  }, [searchParams, meetings, setSearchParams]);
 
   const filteredMeetings = useMemo(() => {
     const filtered = meetings.filter(meeting => {

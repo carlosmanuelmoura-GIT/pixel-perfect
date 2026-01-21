@@ -1,4 +1,5 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -165,6 +166,7 @@ export default function GruposTrabalho() {
   const [expandedGrupos, setExpandedGrupos] = useState<Set<string>>(new Set());
   const [deleteGrupoId, setDeleteGrupoId] = useState<string | null>(null);
   const [deleteEntregavelId, setDeleteEntregavelId] = useState<string | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
 
   // Selected meeting IDs for cascading dropdowns
   const [selectedCriacaoMeetingId, setSelectedCriacaoMeetingId] = useState<string>('');
@@ -181,6 +183,21 @@ export default function GruposTrabalho() {
   const createEntregavel = useCreateEntregavel();
   const updateEntregavel = useUpdateEntregavel();
   const deleteEntregavel = useDeleteEntregavel();
+
+  // Handle URL query parameter for direct grupo navigation
+  useEffect(() => {
+    const grupoId = searchParams.get('grupo');
+    if (grupoId && grupos.length > 0) {
+      const grupo = grupos.find(g => g.id === grupoId);
+      if (grupo) {
+        // Expand the grupo
+        setExpandedGrupos(prev => new Set([...prev, grupoId]));
+        // Clear the URL param after opening
+        searchParams.delete('grupo');
+        setSearchParams(searchParams);
+      }
+    }
+  }, [searchParams, grupos, setSearchParams]);
 
   // Filter only CA meetings
   const caMeetings = useMemo(() => 

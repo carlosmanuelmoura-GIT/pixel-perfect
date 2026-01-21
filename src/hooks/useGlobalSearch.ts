@@ -1,9 +1,10 @@
 import { useMemo } from 'react';
-import { useMeetings, useAgendaPoints, useDecisions, useActions } from './useSupabaseData';
+import { useMeetings, useAgendaPoints, useDecisions, useActions, useProtocols } from './useSupabaseData';
+import { useGruposTrabalho } from './useGruposTrabalho';
 import { format } from 'date-fns';
 import { pt } from 'date-fns/locale';
 
-export type SearchResultType = 'meeting' | 'agenda_point' | 'decision' | 'action';
+export type SearchResultType = 'meeting' | 'agenda_point' | 'decision' | 'action' | 'grupo_trabalho' | 'protocol';
 
 export interface SearchResult {
   id: string;
@@ -11,7 +12,7 @@ export interface SearchResult {
   title: string;
   subtitle: string;
   url: string;
-  icon: 'calendar' | 'file-text' | 'gavel' | 'check-circle';
+  icon: 'calendar' | 'file-text' | 'gavel' | 'check-circle' | 'users' | 'scroll';
 }
 
 const meetingTypeLabels: Record<string, string> = {
@@ -20,11 +21,19 @@ const meetingTypeLabels: Record<string, string> = {
   RT: 'Reunião de Trabalho',
 };
 
+const statusLabels: Record<string, string> = {
+  aberto: 'Aberto',
+  inativo: 'Inativo',
+  fechado: 'Fechado',
+};
+
 export function useGlobalSearch(query: string) {
   const { data: meetings = [] } = useMeetings();
   const { data: agendaPoints = [] } = useAgendaPoints();
   const { data: decisions = [] } = useDecisions();
   const { data: actions = [] } = useActions();
+  const { data: gruposTrabalho = [] } = useGruposTrabalho();
+  const { data: protocols = [] } = useProtocols();
 
   const results = useMemo(() => {
     if (!query || query.length < 2) return [];
@@ -44,7 +53,7 @@ export function useGlobalSearch(query: string) {
           type: 'meeting',
           title: `${meeting.type} - ${dateFormatted}`,
           subtitle: `${meetingLabel} • ${meeting.location}`,
-          url: `/reunioes`,
+          url: `/reunioes?meeting=${meeting.id}`,
           icon: 'calendar',
         });
       }
@@ -105,15 +114,51 @@ export function useGlobalSearch(query: string) {
           type: 'action',
           title: action.description.length > 80 ? action.description.substring(0, 80) + '...' : action.description,
           subtitle: `${action.status} • Prazo: ${deadlineFormatted}`,
-          url: '/acoes',
+          url: `/acoes?action=${action.id}`,
           icon: 'check-circle',
         });
       }
     });
 
+    // Search grupos de trabalho
+    gruposTrabalho.forEach(grupo => {
+      const searchText = `${grupo.codigo} ${grupo.designacao} ${grupo.tema || ''} ${grupo.observacoes_secap || ''}`.toLowerCase();
+      
+      if (searchText.includes(normalizedQuery)) {
+        const statusLabel = statusLabels[grupo.status] || grupo.status;
+        
+        searchResults.push({
+          id: grupo.id,
+          type: 'grupo_trabalho',
+          title: `${grupo.codigo} - ${grupo.designacao}`,
+          subtitle: `${statusLabel} • ${grupo.tema || 'Sem tema'}`,
+          url: `/grupos-trabalho?grupo=${grupo.id}`,
+          icon: 'users',
+        });
+      }
+    });
+
+    // Search protocols
+    protocols.forEach(protocol => {
+      const searchText = `${protocol.nome} ${protocol.tema || ''} ${protocol.objeto || ''} ${protocol.decisor || ''}`.toLowerCase();
+      
+      if (searchText.includes(normalizedQuery)) {
+        const statusText = protocol.em_vigor ? 'Em vigor' : 'Não vigente';
+        
+        searchResults.push({
+          id: protocol.id,
+          type: 'protocol',
+          title: protocol.nome,
+          subtitle: `${statusText} • ${protocol.tema || 'Sem tema'}`,
+          url: `/protocolos?protocol=${protocol.id}`,
+          icon: 'scroll',
+        });
+      }
+    });
+
     // Limit results
-    return searchResults.slice(0, 20);
-  }, [query, meetings, agendaPoints, decisions, actions]);
+    return searchResults.slice(0, 25);
+  }, [query, meetings, agendaPoints, decisions, actions, gruposTrabalho, protocols]);
 
   return { results };
 }
