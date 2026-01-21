@@ -102,6 +102,7 @@ const criticalities: Criticality[] = ['Crítica', 'Importante', 'Normal'];
 
 export default function Acoes() {
   const [pelouroFilter, setPelouroFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
   const [viewMode, setViewMode] = useState<'kanban' | 'list'>('kanban');
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingAction, setEditingAction] = useState<Action | null>(null);
@@ -124,27 +125,48 @@ export default function Acoes() {
   const updateAction = useUpdateAction();
   const deleteActionMutation = useDeleteAction();
 
-  // Handle URL query parameter for direct action navigation
+  // Handle URL query parameters for navigation and filtering
   useEffect(() => {
     const actionId = searchParams.get('action');
+    const filter = searchParams.get('filter');
+    
     if (actionId && actions.length > 0) {
       const action = actions.find(a => a.id === actionId);
       if (action) {
         setEditingAction(action);
         setIsFormOpen(true);
-        // Clear the URL param after opening
         searchParams.delete('action');
         setSearchParams(searchParams);
+      }
+    }
+    
+    if (filter) {
+      setStatusFilter(filter);
+      // Switch to list view for filtered results
+      if (filter !== 'all') {
+        setViewMode('list');
       }
     }
   }, [searchParams, actions, setSearchParams]);
 
   const filteredActions = useMemo(() => {
+    const now = new Date();
     return actions.filter(action => {
       if (pelouroFilter !== 'all' && action.pelouro?.id !== pelouroFilter) return false;
+      
+      // Handle special "expired" filter
+      if (statusFilter === 'expired') {
+        const deadline = new Date(action.deadline);
+        const isExpired = deadline < now && action.status !== 'Concluída' && action.status !== 'Cancelada';
+        return isExpired;
+      }
+      
+      // Handle regular status filter
+      if (statusFilter !== 'all' && action.status !== statusFilter) return false;
+      
       return true;
     });
-  }, [actions, pelouroFilter]);
+  }, [actions, pelouroFilter, statusFilter]);
 
   const getActionsByStatus = (status: ActionStatus) => 
     filteredActions.filter(a => a.status === status);
@@ -257,6 +279,27 @@ export default function Acoes() {
       <div className="space-y-6">
         <div className="flex flex-col sm:flex-row gap-4 justify-between">
           <div className="flex flex-wrap gap-3">
+            <Select value={statusFilter} onValueChange={(value) => {
+              setStatusFilter(value);
+              // Clear URL param when changing filter manually
+              if (searchParams.has('filter')) {
+                searchParams.delete('filter');
+                setSearchParams(searchParams);
+              }
+            }}>
+              <SelectTrigger className="w-[180px]">
+                <Filter className="w-4 h-4 mr-2" />
+                <SelectValue placeholder="Estado" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os estados</SelectItem>
+                <SelectItem value="expired">Expiradas</SelectItem>
+                {actionStatuses.map(status => (
+                  <SelectItem key={status} value={status}>{status}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
             <Select value={pelouroFilter} onValueChange={setPelouroFilter}>
               <SelectTrigger className="w-[180px]">
                 <Filter className="w-4 h-4 mr-2" />

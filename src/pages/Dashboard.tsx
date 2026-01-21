@@ -41,7 +41,7 @@ export default function Dashboard() {
               variant="accent"
             />
           </div>
-          <div onClick={() => navigate('/acoes')} className="cursor-pointer">
+          <div onClick={() => navigate('/acoes?filter=expired')} className="cursor-pointer">
             <MetricCard
               title="Ações Expiradas"
               value={metricsLoading ? '-' : metrics?.expiredActions || 0}
@@ -54,7 +54,7 @@ export default function Dashboard() {
               } : undefined}
             />
           </div>
-          <div onClick={() => navigate('/agenda')} className="cursor-pointer">
+          <div onClick={() => navigate('/agenda?status=Em agendamento')} className="cursor-pointer">
             <MetricCard
               title="Em Agendamento"
               value={metricsLoading ? '-' : metrics?.agendaPointsInScheduling || 0}
@@ -86,7 +86,7 @@ export default function Dashboard() {
             <RecentActions 
               actions={actions} 
               isLoading={actionsLoading} 
-              onActionClick={() => navigate('/acoes')}
+              onActionClick={() => navigate('/acoes?filter=Em curso')}
             />
           </div>
 
@@ -122,11 +122,11 @@ export default function Dashboard() {
                 </div>
                 <div 
                   className="flex items-center justify-between cursor-pointer hover:bg-muted/30 rounded p-2 -m-2 transition-colors"
-                  onClick={() => navigate('/acoes')}
+                  onClick={() => navigate('/acoes?filter=Em curso')}
                 >
-                  <span className="text-sm text-muted-foreground">Total ações</span>
+                  <span className="text-sm text-muted-foreground">Total ações em curso</span>
                   <span className="text-sm font-semibold text-foreground">
-                    {actions.length}
+                    {actions.filter(a => a.status === 'Em curso').length}
                   </span>
                 </div>
               </div>
