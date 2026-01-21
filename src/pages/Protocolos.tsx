@@ -579,14 +579,14 @@ function ProtocolForm({ open, onOpenChange, protocol, pelouros, onSubmit, isPend
             <div className="space-y-2">
               <Label htmlFor="departamento">Departamento Responsável</Label>
               <Select 
-                value={formData.departamento_responsavel_id} 
-                onValueChange={(value) => setFormData({ ...formData, departamento_responsavel_id: value })}
+                value={formData.departamento_responsavel_id || "_none"} 
+                onValueChange={(value) => setFormData({ ...formData, departamento_responsavel_id: value === "_none" ? "" : value })}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Selecionar departamento..." />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Nenhum</SelectItem>
+                  <SelectItem value="_none">Nenhum</SelectItem>
                   {pelouros.map((pelouro) => (
                     <SelectItem key={pelouro.id} value={pelouro.id}>
                       {pelouro.name}
