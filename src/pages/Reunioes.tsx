@@ -328,9 +328,9 @@ function MeetingDetailDialog({ meeting, onClose }: { meeting: Meeting | null; on
   const { data: agendaPoints = [], isLoading } = useAgendaPoints(meeting?.id);
   const [activeTab, setActiveTab] = useState('dados');
 
-  const handleAgendaPointClick = (pointId: string) => {
+  const handleAgendaPointClick = () => {
     onClose();
-    navigate(`/agenda?point=${pointId}`);
+    navigate('/agenda');
   };
 
   if (!meeting) return null;
@@ -397,7 +397,7 @@ function MeetingDetailDialog({ meeting, onClose }: { meeting: Meeting | null; on
                       "p-3 border rounded-lg cursor-pointer hover:bg-muted/50 transition-colors",
                       point.is_confidential && "border-l-2 border-l-status-warning"
                     )}
-                    onClick={() => handleAgendaPointClick(point.id)}
+                    onClick={() => handleAgendaPointClick()}
                   >
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-medium text-muted-foreground w-6">{point.order}</span>
