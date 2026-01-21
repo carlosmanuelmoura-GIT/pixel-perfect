@@ -578,8 +578,14 @@ export type Database = {
         Row: {
           codigo: string
           created_at: string
+          criacao_agenda_point_id: string | null
+          criacao_decision_id: string | null
+          criacao_meeting_id: string | null
           designacao: string
           divulgar_existencia: boolean
+          fecho_agenda_point_id: string | null
+          fecho_decision_id: string | null
+          fecho_meeting_id: string | null
           id: string
           observacoes_secap: string | null
           status: Database["public"]["Enums"]["work_group_status"]
@@ -589,8 +595,14 @@ export type Database = {
         Insert: {
           codigo: string
           created_at?: string
+          criacao_agenda_point_id?: string | null
+          criacao_decision_id?: string | null
+          criacao_meeting_id?: string | null
           designacao: string
           divulgar_existencia?: boolean
+          fecho_agenda_point_id?: string | null
+          fecho_decision_id?: string | null
+          fecho_meeting_id?: string | null
           id?: string
           observacoes_secap?: string | null
           status?: Database["public"]["Enums"]["work_group_status"]
@@ -600,15 +612,64 @@ export type Database = {
         Update: {
           codigo?: string
           created_at?: string
+          criacao_agenda_point_id?: string | null
+          criacao_decision_id?: string | null
+          criacao_meeting_id?: string | null
           designacao?: string
           divulgar_existencia?: boolean
+          fecho_agenda_point_id?: string | null
+          fecho_decision_id?: string | null
+          fecho_meeting_id?: string | null
           id?: string
           observacoes_secap?: string | null
           status?: Database["public"]["Enums"]["work_group_status"]
           tema?: string | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "grupos_trabalho_criacao_agenda_point_id_fkey"
+            columns: ["criacao_agenda_point_id"]
+            isOneToOne: false
+            referencedRelation: "agenda_points"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "grupos_trabalho_criacao_decision_id_fkey"
+            columns: ["criacao_decision_id"]
+            isOneToOne: false
+            referencedRelation: "decisions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "grupos_trabalho_criacao_meeting_id_fkey"
+            columns: ["criacao_meeting_id"]
+            isOneToOne: false
+            referencedRelation: "meetings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "grupos_trabalho_fecho_agenda_point_id_fkey"
+            columns: ["fecho_agenda_point_id"]
+            isOneToOne: false
+            referencedRelation: "agenda_points"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "grupos_trabalho_fecho_decision_id_fkey"
+            columns: ["fecho_decision_id"]
+            isOneToOne: false
+            referencedRelation: "decisions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "grupos_trabalho_fecho_meeting_id_fkey"
+            columns: ["fecho_meeting_id"]
+            isOneToOne: false
+            referencedRelation: "meetings"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       meeting_participants: {
         Row: {
