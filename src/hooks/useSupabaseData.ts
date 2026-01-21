@@ -1424,9 +1424,15 @@ export interface Protocol {
   observacoes: string | null;
   alteracoes: string | null;
   departamento_responsavel_id: string | null;
+  meeting_id: string | null;
+  agenda_point_id: string | null;
+  decision_id: string | null;
   created_at: string;
   updated_at: string;
   departamento_responsavel?: Pelouro | null;
+  meeting?: Meeting | null;
+  agenda_point?: AgendaPoint | null;
+  decision?: Decision | null;
 }
 
 export function useProtocols() {
@@ -1437,7 +1443,10 @@ export function useProtocols() {
         .from('protocols')
         .select(`
           *,
-          departamento_responsavel:pelouros(*)
+          departamento_responsavel:pelouros(*),
+          meeting:meetings(*),
+          agenda_point:agenda_points(*),
+          decision:decisions(*)
         `)
         .order('nome', { ascending: true });
       

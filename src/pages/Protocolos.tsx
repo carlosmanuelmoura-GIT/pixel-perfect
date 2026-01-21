@@ -65,6 +65,9 @@ import {
   useUpdateProtocol, 
   useDeleteProtocol,
   usePelouros,
+  useMeetings,
+  useAgendaPoints,
+  useDecisions,
   Protocol 
 } from '@/hooks/useSupabaseData';
 import { cn } from '@/lib/utils';
@@ -78,6 +81,7 @@ export default function Protocolos() {
 
   const { data: protocols = [], isLoading } = useProtocols();
   const { data: pelouros = [] } = usePelouros();
+  const { data: meetings = [] } = useMeetings();
   const createProtocol = useCreateProtocol();
   const updateProtocol = useUpdateProtocol();
   const deleteProtocolMutation = useDeleteProtocol();
@@ -162,17 +166,17 @@ export default function Protocolos() {
                 <TableHead>Nome</TableHead>
                 <TableHead>Versão</TableHead>
                 <TableHead>Tema</TableHead>
+                <TableHead>Reunião CA</TableHead>
                 <TableHead>Data Celebração</TableHead>
                 <TableHead>Em Vigor</TableHead>
                 <TableHead>Renovação Auto.</TableHead>
-                <TableHead>Departamento</TableHead>
                 <TableHead className="w-[70px]"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredProtocols.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center py-12 text-muted-foreground">
+                  <TableCell colSpan={9} className="text-center py-12 text-muted-foreground">
                     <Handshake className="w-12 h-12 mx-auto mb-4 opacity-50" />
                     <p>Nenhum protocolo encontrado</p>
                   </TableCell>
@@ -183,6 +187,16 @@ export default function Protocolos() {
                     <TableCell className="font-medium">{protocol.nome}</TableCell>
                     <TableCell>{protocol.versao || '-'}</TableCell>
                     <TableCell>{protocol.tema || '-'}</TableCell>
+                    <TableCell>
+                      {protocol.meeting ? (
+                        <div className="text-sm">
+                          <span className="font-medium">{protocol.meeting.type}</span>
+                          <span className="text-muted-foreground ml-1">
+                            {format(new Date(protocol.meeting.date), "dd/MM/yyyy", { locale: pt })}
+                          </span>
+                        </div>
+                      ) : '-'}
+                    </TableCell>
                     <TableCell>
                       {protocol.data_celebracao 
                         ? format(new Date(protocol.data_celebracao), "dd/MM/yyyy", { locale: pt })
@@ -209,7 +223,6 @@ export default function Protocolos() {
                         {protocol.renovacao_automatica ? 'Sim' : 'Não'}
                       </Badge>
                     </TableCell>
-                    <TableCell>{protocol.departamento_responsavel?.name || '-'}</TableCell>
                     <TableCell>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
@@ -250,6 +263,7 @@ export default function Protocolos() {
         onOpenChange={setIsFormOpen}
         protocol={editingProtocol}
         pelouros={pelouros}
+        meetings={meetings}
         onSubmit={async (data) => {
           if (editingProtocol) {
             await updateProtocol.mutateAsync({ id: editingProtocol.id, ...data });
@@ -287,11 +301,22 @@ interface ProtocolFormProps {
   onOpenChange: (open: boolean) => void;
   protocol: Protocol | null;
   pelouros: { id: string; name: string }[];
+  meetings: { id: string; type: string; date: string }[];
   onSubmit: (data: any) => Promise<void>;
   isPending: boolean;
 }
 
-function ProtocolForm({ open, onOpenChange, protocol, pelouros, onSubmit, isPending }: ProtocolFormProps) {
+interface MeetingOption {
+  id: string;
+  type: string;
+  date: string;
+}
+
+function ProtocolForm({ open, onOpenChange, protocol, pelouros, meetings, onSubmit, isPending }: ProtocolFormProps) {
+  const [selectedMeetingId, setSelectedMeetingId] = useState<string>('');
+  const { data: agendaPoints = [] } = useAgendaPoints(selectedMeetingId || undefined);
+  const [selectedAgendaPointId, setSelectedAgendaPointId] = useState<string>('');
+  const { data: decisions = [] } = useDecisions(selectedAgendaPointId || undefined);
   const [formData, setFormData] = useState({
     versao: '',
     nome: '',
@@ -312,6 +337,9 @@ function ProtocolForm({ open, onOpenChange, protocol, pelouros, onSubmit, isPend
     observacoes: '',
     alteracoes: '',
     departamento_responsavel_id: '',
+    meeting_id: '',
+    agenda_point_id: '',
+    decision_id: '',
   });
 
   // Reset form when dialog opens
@@ -338,7 +366,12 @@ function ProtocolForm({ open, onOpenChange, protocol, pelouros, onSubmit, isPend
           observacoes: protocol.observacoes || '',
           alteracoes: protocol.alteracoes || '',
           departamento_responsavel_id: protocol.departamento_responsavel_id || '',
+          meeting_id: protocol.meeting_id || '',
+          agenda_point_id: protocol.agenda_point_id || '',
+          decision_id: protocol.decision_id || '',
         });
+        setSelectedMeetingId(protocol.meeting_id || '');
+        setSelectedAgendaPointId(protocol.agenda_point_id || '');
       } else {
         setFormData({
           versao: '',
@@ -360,7 +393,12 @@ function ProtocolForm({ open, onOpenChange, protocol, pelouros, onSubmit, isPend
           observacoes: '',
           alteracoes: '',
           departamento_responsavel_id: '',
+          meeting_id: '',
+          agenda_point_id: '',
+          decision_id: '',
         });
+        setSelectedMeetingId('');
+        setSelectedAgendaPointId('');
       }
     }
   });
@@ -388,7 +426,12 @@ function ProtocolForm({ open, onOpenChange, protocol, pelouros, onSubmit, isPend
         observacoes: protocol.observacoes || '',
         alteracoes: protocol.alteracoes || '',
         departamento_responsavel_id: protocol.departamento_responsavel_id || '',
+        meeting_id: protocol.meeting_id || '',
+        agenda_point_id: protocol.agenda_point_id || '',
+        decision_id: protocol.decision_id || '',
       });
+      setSelectedMeetingId(protocol.meeting_id || '');
+      setSelectedAgendaPointId(protocol.agenda_point_id || '');
     } else if (newOpen && !protocol) {
       setFormData({
         versao: '',
@@ -410,9 +453,41 @@ function ProtocolForm({ open, onOpenChange, protocol, pelouros, onSubmit, isPend
         observacoes: '',
         alteracoes: '',
         departamento_responsavel_id: '',
+        meeting_id: '',
+        agenda_point_id: '',
+        decision_id: '',
       });
+      setSelectedMeetingId('');
+      setSelectedAgendaPointId('');
     }
     onOpenChange(newOpen);
+  };
+
+  const handleMeetingChange = (meetingId: string) => {
+    const actualMeetingId = meetingId === "_none" ? '' : meetingId;
+    setSelectedMeetingId(actualMeetingId);
+    setSelectedAgendaPointId('');
+    setFormData({ 
+      ...formData, 
+      meeting_id: actualMeetingId, 
+      agenda_point_id: '', 
+      decision_id: '' 
+    });
+  };
+
+  const handleAgendaPointChange = (agendaPointId: string) => {
+    const actualAgendaPointId = agendaPointId === "_none" ? '' : agendaPointId;
+    setSelectedAgendaPointId(actualAgendaPointId);
+    setFormData({ 
+      ...formData, 
+      agenda_point_id: actualAgendaPointId, 
+      decision_id: '' 
+    });
+  };
+
+  const handleDecisionChange = (decisionId: string) => {
+    const actualDecisionId = decisionId === "_none" ? '' : decisionId;
+    setFormData({ ...formData, decision_id: actualDecisionId });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -425,6 +500,9 @@ function ProtocolForm({ open, onOpenChange, protocol, pelouros, onSubmit, isPend
       data_aprovacao: formData.data_aprovacao || null,
       data_termo: formData.data_termo || null,
       departamento_responsavel_id: formData.departamento_responsavel_id || null,
+      meeting_id: formData.meeting_id || null,
+      agenda_point_id: formData.agenda_point_id || null,
+      decision_id: formData.decision_id || null,
     };
 
     await onSubmit(submitData);
@@ -488,6 +566,72 @@ function ProtocolForm({ open, onOpenChange, protocol, pelouros, onSubmit, isPend
               onChange={(e) => setFormData({ ...formData, objeto: e.target.value })}
               className="min-h-[80px]"
             />
+          </div>
+
+          {/* Associação com Reunião CA */}
+          <div className="p-4 border rounded-lg bg-muted/30 space-y-4">
+            <h4 className="font-medium text-sm">Associação com Reunião CA</h4>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="meeting">Reunião CA</Label>
+                <Select 
+                  value={formData.meeting_id || "_none"} 
+                  onValueChange={handleMeetingChange}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecionar reunião..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="_none">Nenhuma</SelectItem>
+                    {meetings.map((meeting) => (
+                      <SelectItem key={meeting.id} value={meeting.id}>
+                        {meeting.type} - {format(new Date(meeting.date), "dd/MM/yyyy", { locale: pt })}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="agenda_point">Ponto de Agenda</Label>
+                <Select 
+                  value={formData.agenda_point_id || "_none"} 
+                  onValueChange={handleAgendaPointChange}
+                  disabled={!selectedMeetingId}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder={selectedMeetingId ? "Selecionar ponto..." : "Selecione uma reunião primeiro"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="_none">Nenhum</SelectItem>
+                    {agendaPoints.map((point) => (
+                      <SelectItem key={point.id} value={point.id}>
+                        {point.order}. {point.title}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="decision">Decisão</Label>
+                <Select 
+                  value={formData.decision_id || "_none"} 
+                  onValueChange={handleDecisionChange}
+                  disabled={!selectedAgendaPointId}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder={selectedAgendaPointId ? "Selecionar decisão..." : "Selecione um ponto primeiro"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="_none">Nenhuma</SelectItem>
+                    {decisions.map((decision) => (
+                      <SelectItem key={decision.id} value={decision.id}>
+                        {decision.text.length > 50 ? decision.text.substring(0, 50) + '...' : decision.text}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
           </div>
 
           {/* Switches */}
