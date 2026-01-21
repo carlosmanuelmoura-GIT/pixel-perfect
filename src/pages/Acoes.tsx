@@ -416,13 +416,13 @@ function ActionForm({
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
                 <Label>Reunião CA</Label>
-                <Select value={selectedMeetingId} onValueChange={setSelectedMeetingId}>
+                <Select value={selectedMeetingId || 'all'} onValueChange={(v) => setSelectedMeetingId(v === 'all' ? '' : v)}>
                   <SelectTrigger>
                     <Calendar className="w-4 h-4 mr-2" />
                     <SelectValue placeholder="Selecione a reunião (opcional)" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Todas as reuniões</SelectItem>
+                    <SelectItem value="all">Todas as reuniões</SelectItem>
                     {caMeetings.map(m => (
                       <SelectItem key={m.id} value={m.id}>
                         CA - {format(new Date(m.date), 'dd/MM/yyyy', { locale: pt })}
