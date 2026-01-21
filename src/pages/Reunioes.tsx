@@ -19,7 +19,9 @@ import {
   Lock,
   ArrowUpDown,
   ArrowUp,
-  ArrowDown
+  ArrowDown,
+  List,
+  CalendarDays
 } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
@@ -69,6 +71,7 @@ import {
 } from '@/hooks/useSupabaseData';
 import type { Meeting, MeetingStatus, MeetingType, AgendaPoint } from '@/types/database';
 import { cn } from '@/lib/utils';
+import { MonthlyCalendar } from '@/components/reunioes/MonthlyCalendar';
 
 const meetingTypeStyles: Record<MeetingType, string> = {
   CA: 'bg-primary/10 text-primary border-primary/20',
@@ -96,6 +99,7 @@ export default function Reunioes() {
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
+  const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list');
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingMeeting, setEditingMeeting] = useState<Meeting | null>(null);
   const [deleteMeeting, setDeleteMeeting] = useState<Meeting | null>(null);
@@ -238,6 +242,27 @@ export default function Reunioes() {
                 </SelectItem>
               </SelectContent>
             </Select>
+
+            <div className="flex items-center border rounded-md overflow-hidden">
+              <Button
+                variant={viewMode === 'list' ? 'default' : 'ghost'}
+                size="sm"
+                className="rounded-none gap-2"
+                onClick={() => setViewMode('list')}
+              >
+                <List className="w-4 h-4" />
+                Lista
+              </Button>
+              <Button
+                variant={viewMode === 'calendar' ? 'default' : 'ghost'}
+                size="sm"
+                className="rounded-none gap-2"
+                onClick={() => setViewMode('calendar')}
+              >
+                <CalendarDays className="w-4 h-4" />
+                Calendário
+              </Button>
+            </div>
           </div>
 
           <Button className="gap-2" onClick={handleCreate}>
@@ -246,29 +271,38 @@ export default function Reunioes() {
           </Button>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {filteredMeetings.map((meeting, index) => (
-            <MeetingCard 
-              key={meeting.id} 
-              meeting={meeting}
-              participantNames={getParticipantNames(meeting.participants)}
-              index={index}
-              onClick={() => handleMeetingClick(meeting)}
-              onEdit={() => handleEdit(meeting)}
-              onDelete={() => setDeleteMeeting(meeting)}
-              onDuplicate={() => setDuplicateMeetingData({ meeting, newDate: format(new Date(), 'yyyy-MM-dd') })}
-            />
-          ))}
-        </div>
+        {viewMode === 'calendar' ? (
+          <MonthlyCalendar
+            meetings={filteredMeetings}
+            onMeetingClick={handleMeetingClick}
+          />
+        ) : (
+          <>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              {filteredMeetings.map((meeting, index) => (
+                <MeetingCard 
+                  key={meeting.id} 
+                  meeting={meeting}
+                  participantNames={getParticipantNames(meeting.participants)}
+                  index={index}
+                  onClick={() => handleMeetingClick(meeting)}
+                  onEdit={() => handleEdit(meeting)}
+                  onDelete={() => setDeleteMeeting(meeting)}
+                  onDuplicate={() => setDuplicateMeetingData({ meeting, newDate: format(new Date(), 'yyyy-MM-dd') })}
+                />
+              ))}
+            </div>
 
-        {filteredMeetings.length === 0 && (
-          <div className="text-center py-12">
-            <Calendar className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-foreground">Nenhuma reunião encontrada</h3>
-            <p className="text-muted-foreground mt-1">
-              Ajuste os filtros ou crie uma nova reunião
-            </p>
-          </div>
+            {filteredMeetings.length === 0 && (
+              <div className="text-center py-12">
+                <Calendar className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-foreground">Nenhuma reunião encontrada</h3>
+                <p className="text-muted-foreground mt-1">
+                  Ajuste os filtros ou crie uma nova reunião
+                </p>
+              </div>
+            )}
+          </>
         )}
       </div>
 
