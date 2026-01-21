@@ -85,7 +85,7 @@ const meetingStatusStyles: Record<MeetingStatus, string> = {
 
 const meetingTypeLabels: Record<MeetingType, string> = {
   CA: 'Conselho de Administração',
-  CEAAP: 'Comissão de Auditoria',
+  CEAAP: 'Assuntos Administrativos',
   RT: 'Reunião de Trabalho',
 };
 
@@ -185,7 +185,7 @@ export default function Reunioes() {
               <SelectContent>
                 <SelectItem value="all">Todos os tipos</SelectItem>
                 <SelectItem value="CA">CA - Conselho de Administração</SelectItem>
-                <SelectItem value="CEAAP">CEAAP - Comissão de Auditoria</SelectItem>
+                <SelectItem value="CEAAP">CEAAP - Assuntos Administrativos</SelectItem>
                 <SelectItem value="RT">RT - Reunião de Trabalho</SelectItem>
               </SelectContent>
             </Select>

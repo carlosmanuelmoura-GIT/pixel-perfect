@@ -19,7 +19,7 @@ const meetingTypeStyles: Record<string, string> = {
 
 const meetingTypeLabels: Record<string, string> = {
   CA: 'Conselho de Administração',
-  CEAAP: 'Comissão de Auditoria',
+  CEAAP: 'Assuntos Administrativos',
   RT: 'Reunião de Trabalho',
 };
 
