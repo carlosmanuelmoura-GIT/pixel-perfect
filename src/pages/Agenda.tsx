@@ -703,7 +703,7 @@ function AgendaPointDetailWithDecisions({
   );
 }
 
-// Editable Attributes Tab Component for CRUD
+// Editable Attributes Tab Component for CRUD - Single Save button per tab
 function EditableAttributesTab({
   point,
   families,
@@ -718,6 +718,7 @@ function EditableAttributesTab({
   emptyMessage?: string;
 }) {
   const [localValues, setLocalValues] = useState<Record<string, any>>({});
+  const [isSaving, setIsSaving] = useState(false);
 
   // Initialize local values from attributes
   useEffect(() => {
@@ -739,19 +740,34 @@ function EditableAttributesTab({
     setLocalValues(values);
   }, [attributes]);
 
-  const handleSaveAttribute = async (definitionId: string, definition: any) => {
-    const value = localValues[definitionId];
-    const existingAttr = attributes.find((a: any) => a.attribute_definition_id === definitionId);
-    
-    await upsertAttribute.mutateAsync({
-      id: existingAttr?.id,
-      agenda_point_id: point.id,
-      attribute_definition_id: definitionId,
-      value_text: ['text', 'textarea', 'url', 'email', 'select'].includes(definition.attribute_type) ? value : null,
-      value_number: ['number', 'currency'].includes(definition.attribute_type) ? Number(value) : null,
-      value_boolean: definition.attribute_type === 'boolean' ? Boolean(value) : null,
-      value_date: ['date', 'datetime'].includes(definition.attribute_type) ? value : null,
-    });
+  // Get all active definitions from all families
+  const allDefinitions = families.flatMap((family: any) => 
+    (family.definitions || []).filter((d: any) => d.is_active)
+  );
+
+  const handleSaveAll = async () => {
+    setIsSaving(true);
+    try {
+      // Save all attributes with values
+      for (const def of allDefinitions) {
+        const value = localValues[def.id];
+        if (value === undefined || value === null || value === '') continue;
+        
+        const existingAttr = attributes.find((a: any) => a.attribute_definition_id === def.id);
+        
+        await upsertAttribute.mutateAsync({
+          id: existingAttr?.id,
+          agenda_point_id: point.id,
+          attribute_definition_id: def.id,
+          value_text: ['text', 'textarea', 'url', 'email', 'select'].includes(def.attribute_type) ? value : null,
+          value_number: ['number', 'currency'].includes(def.attribute_type) ? Number(value) : null,
+          value_boolean: def.attribute_type === 'boolean' ? Boolean(value) : null,
+          value_date: ['date', 'datetime'].includes(def.attribute_type) ? value : null,
+        });
+      }
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   if (families.length === 0) {
@@ -846,22 +862,20 @@ function EditableAttributesTab({
                       placeholder={def.description || `Digite ${def.label}...`}
                     />
                   )}
-                  
-                  <Button 
-                    size="sm" 
-                    variant="outline" 
-                    onClick={() => handleSaveAttribute(def.id, def)}
-                    disabled={upsertAttribute.isPending}
-                  >
-                    {upsertAttribute.isPending ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <Save className="w-3 h-3 mr-1" />}
-                    Guardar
-                  </Button>
                 </div>
               ))}
             </div>
           </div>
         );
       })}
+      
+      {/* Single Save button at the bottom of the tab */}
+      <div className="pt-4 border-t">
+        <Button onClick={handleSaveAll} disabled={isSaving}>
+          {isSaving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
+          Guardar
+        </Button>
+      </div>
     </div>
   );
 }
