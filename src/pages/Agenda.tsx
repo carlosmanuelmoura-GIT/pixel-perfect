@@ -338,11 +338,15 @@ function AgendaPointDetailWithDecisions({
   const { data: decisions = [], isLoading: decisionsLoading } = useDecisions(point.id);
   const { data: extraData } = useAgendaPointExtraData(point.id);
   const { data: pelouros = [] } = usePelouros();
+  const { data: administrators = [] } = useAdministrators();
   const { data: pointPelouros = [] } = useAgendaPointPelouros(point.id);
   const { data: pointAttributes = [] } = useAgendaPointAttributes(point.id);
   const [isDecisionFormOpen, setIsDecisionFormOpen] = useState(false);
   const [editingDecision, setEditingDecision] = useState<Decision | null>(null);
   const [deleteDecision, setDeleteDecision] = useState<Decision | null>(null);
+  
+  // Selected administrators for attendance
+  const [selectedAdministrators, setSelectedAdministrators] = useState<string[]>([]);
 
   const createDecision = useCreateDecision();
   const updateDecision = useUpdateDecision();
@@ -413,6 +417,14 @@ function AgendaPointDetailWithDecisions({
       prev.includes(pelouroId) 
         ? prev.filter(id => id !== pelouroId)
         : [...prev, pelouroId]
+    );
+  };
+
+  const handleToggleAdministrator = (adminId: string) => {
+    setSelectedAdministrators(prev => 
+      prev.includes(adminId) 
+        ? prev.filter(id => id !== adminId)
+        : [...prev, adminId]
     );
   };
 
@@ -500,21 +512,82 @@ function AgendaPointDetailWithDecisions({
         </div>
       </TabsContent>
 
-      {/* Tab: Presenças - Multi-select Departamentos */}
+      {/* Tab: Presenças - Administradores, SEC e Departamentos */}
       <TabsContent value="presencas" className="mt-4 space-y-6">
+        {/* Secção: Administradores */}
         <div className="space-y-4">
           <div>
-            <Label className="text-base font-medium">Departamento(s)</Label>
+            <Label className="text-base font-medium flex items-center gap-2">
+              <User className="w-4 h-4" />
+              Administradores
+            </Label>
+            <p className="text-sm text-muted-foreground mb-4">
+              Selecione os administradores presentes neste ponto de agenda.
+            </p>
+          </div>
+          
+          {administrators.length === 0 ? (
+            <div className="text-center py-4 text-muted-foreground">
+              <User className="w-8 h-8 mx-auto mb-2 opacity-50" />
+              <p className="text-sm">Nenhum administrador configurado</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-3">
+              {administrators.map((admin) => (
+                <div 
+                  key={admin.id} 
+                  className={cn(
+                    "p-4 border rounded-lg cursor-pointer transition-colors",
+                    selectedAdministrators.includes(admin.id) 
+                      ? "border-primary bg-primary/5" 
+                      : "border-border hover:border-primary/50"
+                  )}
+                  onClick={() => handleToggleAdministrator(admin.id)}
+                >
+                  <div className="flex items-center gap-3">
+                    <Checkbox
+                      checked={selectedAdministrators.includes(admin.id)}
+                      onCheckedChange={() => handleToggleAdministrator(admin.id)}
+                    />
+                    <div>
+                      <p className="font-medium">{admin.name}</p>
+                      {admin.email && (
+                        <p className="text-sm text-muted-foreground">{admin.email}</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Separador visual */}
+        <div className="relative">
+          <div className="absolute inset-0 flex items-center">
+            <span className="w-full border-t border-border" />
+          </div>
+          <div className="relative flex justify-center text-xs uppercase">
+            <span className="bg-background px-3 text-muted-foreground">Departamentos</span>
+          </div>
+        </div>
+
+        {/* Secção: Departamentos */}
+        <div className="space-y-4">
+          <div>
+            <Label className="text-base font-medium flex items-center gap-2">
+              <Briefcase className="w-4 h-4" />
+              Departamento(s)
+            </Label>
             <p className="text-sm text-muted-foreground mb-4">
               Selecione os departamentos que participam neste ponto de agenda.
             </p>
           </div>
           
           {pelouros.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              <Briefcase className="w-10 h-10 mx-auto mb-2 opacity-50" />
-              <p>Nenhum departamento configurado</p>
-              <p className="text-sm mt-1">Configure departamentos no backoffice (Administradores → Pelouros).</p>
+            <div className="text-center py-4 text-muted-foreground">
+              <Briefcase className="w-8 h-8 mx-auto mb-2 opacity-50" />
+              <p className="text-sm">Nenhum departamento configurado</p>
             </div>
           ) : (
             <div className="grid grid-cols-2 gap-3">
@@ -545,12 +618,12 @@ function AgendaPointDetailWithDecisions({
               ))}
             </div>
           )}
-
-          <Button onClick={handleSavePresencas} disabled={setPointPelouros.isPending}>
-            {setPointPelouros.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
-            Guardar Presenças
-          </Button>
         </div>
+
+        <Button onClick={handleSavePresencas} disabled={setPointPelouros.isPending}>
+          {setPointPelouros.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
+          Guardar Presenças
+        </Button>
       </TabsContent>
 
       {/* Tab: Observações */}
@@ -782,12 +855,9 @@ function EditableAttributesTab({
           <div key={family.id} className="space-y-4">
             <div className="flex items-center gap-2">
               <h4 className="font-medium text-foreground">{family.name}</h4>
-              {family.description && (
-                <span className="text-sm text-muted-foreground">- {family.description}</span>
-              )}
             </div>
             <div className="grid grid-cols-2 gap-4">
-              {definitions.filter((d: any) => d.is_active).map((def: any) => (
+              {definitions.filter((d: any) => d.is_active && !['kpi_principal', 'meta_valor', 'objetivo'].includes(d.name?.toLowerCase())).map((def: any) => (
                 <div key={def.id} className="space-y-2">
                   <Label htmlFor={def.id} className="flex items-center gap-1">
                     {def.label}
