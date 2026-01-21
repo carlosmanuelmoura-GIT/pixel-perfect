@@ -17,8 +17,11 @@ import {
   FileText,
   Gavel,
   Calendar,
-  ExternalLink
+  ExternalLink,
+  Download
 } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -59,6 +62,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Checkbox } from '@/components/ui/checkbox';
 import { 
   useActions, 
   usePelouros, 
@@ -104,6 +108,9 @@ export default function Acoes() {
   const [progressAction, setProgressAction] = useState<Action | null>(null);
   const [viewDecisionAction, setViewDecisionAction] = useState<Action | null>(null);
   const [progressValue, setProgressValue] = useState<number>(0);
+  const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
+  const [exportStatuses, setExportStatuses] = useState<ActionStatus[]>([]);
+  const [isExporting, setIsExporting] = useState(false);
   
   const { data: actions = [], isLoading } = useActions();
   const { data: pelouros = [] } = usePelouros();
@@ -169,6 +176,44 @@ export default function Acoes() {
     return decisions.find(d => d.id === action.decision_id);
   };
 
+  const handleExportStatusToggle = (status: ActionStatus) => {
+    setExportStatuses(prev => 
+      prev.includes(status) 
+        ? prev.filter(s => s !== status)
+        : [...prev, status]
+    );
+  };
+
+  const handleExport = async () => {
+    setIsExporting(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('export-actions', {
+        body: { statuses: exportStatuses.length > 0 ? exportStatuses : null }
+      });
+
+      if (error) throw error;
+
+      // Download the ZIP file
+      const blob = new Blob([data], { type: 'application/zip' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `acoes_followup_${new Date().toISOString().split('T')[0]}.zip`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      toast.success('Exportação concluída com sucesso!');
+      setIsExportDialogOpen(false);
+    } catch (error: unknown) {
+      console.error('Error exporting actions:', error);
+      const err = error as { message?: string };
+      toast.error(err.message || 'Erro ao exportar ações');
+    } finally {
+      setIsExporting(false);
+    }
+  };
   if (isLoading) {
     return (
       <AppLayout title="Ações em Follow-up" subtitle="Acompanhamento das ações resultantes das decisões">
@@ -217,10 +262,16 @@ export default function Acoes() {
             </div>
           </div>
 
-          <Button className="gap-2" onClick={handleCreate}>
-            <Plus className="w-4 h-4" />
-            Nova Ação
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" className="gap-2" onClick={() => setIsExportDialogOpen(true)}>
+              <Download className="w-4 h-4" />
+              Exportar
+            </Button>
+            <Button className="gap-2" onClick={handleCreate}>
+              <Plus className="w-4 h-4" />
+              Nova Ação
+            </Button>
+          </div>
         </div>
 
         {viewMode === 'kanban' && (
@@ -398,6 +449,63 @@ export default function Acoes() {
           )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setViewDecisionAction(null)}>Fechar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Export Dialog */}
+      <Dialog open={isExportDialogOpen} onOpenChange={setIsExportDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Exportar Ações</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <p className="text-sm text-muted-foreground">
+              Selecione os estados a exportar. Será gerado um ZIP com um ficheiro Excel global e um ficheiro por cada departamento.
+            </p>
+            <div className="space-y-3">
+              <Label>Filtrar por Estado</Label>
+              <div className="grid grid-cols-2 gap-3">
+                {actionStatuses.map(status => (
+                  <div key={status} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={`export-${status}`}
+                      checked={exportStatuses.includes(status)}
+                      onCheckedChange={() => handleExportStatusToggle(status)}
+                    />
+                    <label
+                      htmlFor={`export-${status}`}
+                      className="text-sm cursor-pointer"
+                    >
+                      {status}
+                    </label>
+                  </div>
+                ))}
+              </div>
+              {exportStatuses.length === 0 && (
+                <p className="text-xs text-muted-foreground">
+                  Nenhum estado selecionado - serão exportadas todas as ações
+                </p>
+              )}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsExportDialogOpen(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleExport} disabled={isExporting}>
+              {isExporting ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  A exportar...
+                </>
+              ) : (
+                <>
+                  <Download className="w-4 h-4 mr-2" />
+                  Exportar ZIP
+                </>
+              )}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
