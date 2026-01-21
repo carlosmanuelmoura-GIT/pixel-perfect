@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { format } from 'date-fns';
 import { pt } from 'date-fns/locale';
 import { 
@@ -78,6 +79,7 @@ export default function Protocolos() {
   const [deleteProtocol, setDeleteProtocol] = useState<Protocol | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterEmVigor, setFilterEmVigor] = useState<string>('all');
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const { data: protocols = [], isLoading } = useProtocols();
   const { data: pelouros = [] } = usePelouros();
@@ -85,6 +87,21 @@ export default function Protocolos() {
   const createProtocol = useCreateProtocol();
   const updateProtocol = useUpdateProtocol();
   const deleteProtocolMutation = useDeleteProtocol();
+
+  // Handle URL query parameter for direct protocol navigation
+  useEffect(() => {
+    const protocolId = searchParams.get('protocol');
+    if (protocolId && protocols.length > 0) {
+      const protocol = protocols.find(p => p.id === protocolId);
+      if (protocol) {
+        setEditingProtocol(protocol);
+        setIsFormOpen(true);
+        // Clear the URL param after opening
+        searchParams.delete('protocol');
+        setSearchParams(searchParams);
+      }
+    }
+  }, [searchParams, protocols, setSearchParams]);
 
   const filteredProtocols = protocols.filter(protocol => {
     const matchesSearch = protocol.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||

@@ -1,4 +1,5 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { format, differenceInDays } from 'date-fns';
 import { pt } from 'date-fns/locale';
 import { 
@@ -111,6 +112,7 @@ export default function Acoes() {
   const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
   const [exportStatuses, setExportStatuses] = useState<ActionStatus[]>([]);
   const [isExporting, setIsExporting] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
   
   const { data: actions = [], isLoading } = useActions();
   const { data: pelouros = [] } = usePelouros();
@@ -121,6 +123,21 @@ export default function Acoes() {
   const createAction = useCreateAction();
   const updateAction = useUpdateAction();
   const deleteActionMutation = useDeleteAction();
+
+  // Handle URL query parameter for direct action navigation
+  useEffect(() => {
+    const actionId = searchParams.get('action');
+    if (actionId && actions.length > 0) {
+      const action = actions.find(a => a.id === actionId);
+      if (action) {
+        setEditingAction(action);
+        setIsFormOpen(true);
+        // Clear the URL param after opening
+        searchParams.delete('action');
+        setSearchParams(searchParams);
+      }
+    }
+  }, [searchParams, actions, setSearchParams]);
 
   const filteredActions = useMemo(() => {
     return actions.filter(action => {

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Calendar, FileText, Gavel, CheckCircle, Command } from 'lucide-react';
+import { Search, Calendar, FileText, Gavel, CheckCircle, Command, Users, ScrollText } from 'lucide-react';
 import {
   CommandDialog,
   CommandEmpty,
@@ -16,6 +16,8 @@ const iconMap = {
   'file-text': FileText,
   gavel: Gavel,
   'check-circle': CheckCircle,
+  users: Users,
+  scroll: ScrollText,
 };
 
 const typeLabels: Record<string, string> = {
@@ -23,6 +25,8 @@ const typeLabels: Record<string, string> = {
   agenda_point: 'Pontos de Agenda',
   decision: 'Decisões',
   action: 'Ações',
+  grupo_trabalho: 'Grupos de Trabalho',
+  protocol: 'Protocolos',
 };
 
 interface GlobalSearchProps {
