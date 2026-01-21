@@ -201,6 +201,7 @@ export type Database = {
         Row: {
           agenda_point_id: string
           created_at: string
+          ficha_file_path: string | null
           id: string
           motivo_ausencia_dcm: string | null
           motivo_ausencia_dep: string | null
@@ -215,6 +216,7 @@ export type Database = {
         Insert: {
           agenda_point_id: string
           created_at?: string
+          ficha_file_path?: string | null
           id?: string
           motivo_ausencia_dcm?: string | null
           motivo_ausencia_dep?: string | null
@@ -229,6 +231,7 @@ export type Database = {
         Update: {
           agenda_point_id?: string
           created_at?: string
+          ficha_file_path?: string | null
           id?: string
           motivo_ausencia_dcm?: string | null
           motivo_ausencia_dep?: string | null

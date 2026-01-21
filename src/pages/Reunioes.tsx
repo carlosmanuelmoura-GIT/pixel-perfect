@@ -634,7 +634,6 @@ function MeetingCard({ meeting, participantNames, index, onClick, onEdit, onDele
                 <Copy className="w-4 h-4 mr-2" />
                 Duplicar
               </DropdownMenuItem>
-              <DropdownMenuItem>Exportar Ata</DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem className="text-destructive" onClick={(e) => { e.stopPropagation(); onDelete(); }}>
                 <Trash2 className="w-4 h-4 mr-2" />
