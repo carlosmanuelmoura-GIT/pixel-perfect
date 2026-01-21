@@ -3,7 +3,8 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Loader2, FileText, Mail, Lock } from 'lucide-react';
+import { Loader2, Mail, Lock } from 'lucide-react';
+import logoImage from '@/assets/logo-board-meeting.png';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -59,33 +60,15 @@ export default function Login() {
         <div className="absolute inset-0 bg-gradient-to-br from-primary/90 to-accent/50" />
         <div className="relative z-10 flex flex-col justify-center p-12 text-white">
           <div className="flex items-center gap-3 mb-8">
-            <div className="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center">
-              <FileText className="w-7 h-7 text-white" />
+            <div className="w-14 h-14 rounded-xl bg-white/20 flex items-center justify-center overflow-hidden">
+              <img src={logoImage} alt="Logo" className="w-12 h-12 object-contain" />
             </div>
-            <div>
-              <h1 className="text-2xl font-bold">BoardFlow</h1>
-              <p className="text-white/70 text-sm">Gestão de Decisões</p>
-            </div>
+            <h1 className="text-2xl font-bold">Gestão Decisões CA</h1>
           </div>
           
-          <h2 className="text-4xl font-bold mb-4 leading-tight">
-            Gestão eficiente de<br />decisões corporativas
-          </h2>
-          <p className="text-white/80 text-lg max-w-md">
-            Acompanhe reuniões, decisões e ações do conselho de administração 
-            numa plataforma centralizada e segura.
+          <p className="text-white/90 text-xl max-w-md leading-relaxed">
+            Plataforma Interna do SEC para acompanhamento de: Reuniões de CA, Pontos de Agenda, Decisões, Ações de Follow-up, Protocolos e Grupos de Trabalho
           </p>
-          
-          <div className="mt-12 grid grid-cols-2 gap-6">
-            <div className="bg-white/10 rounded-xl p-4 backdrop-blur-sm">
-              <div className="text-3xl font-bold">4</div>
-              <div className="text-white/70 text-sm">Tipos de Utilizador</div>
-            </div>
-            <div className="bg-white/10 rounded-xl p-4 backdrop-blur-sm">
-              <div className="text-3xl font-bold">100%</div>
-              <div className="text-white/70 text-sm">Seguro</div>
-            </div>
-          </div>
         </div>
         
         {/* Decorative circles */}
@@ -97,12 +80,10 @@ export default function Login() {
       <div className="flex-1 flex items-center justify-center p-8 bg-background">
         <div className="w-full max-w-md space-y-8">
           <div className="lg:hidden flex items-center gap-3 mb-8 justify-center">
-            <div className="w-10 h-10 rounded-lg gradient-primary flex items-center justify-center">
-              <FileText className="w-5 h-5 text-white" />
+            <div className="w-10 h-10 rounded-lg gradient-primary flex items-center justify-center overflow-hidden">
+              <img src={logoImage} alt="Logo" className="w-8 h-8 object-contain" />
             </div>
-            <div>
-              <h1 className="text-xl font-bold text-foreground">BoardFlow</h1>
-            </div>
+            <h1 className="text-xl font-bold text-foreground">Gestão Decisões CA</h1>
           </div>
 
           <div className="text-center lg:text-left">
