@@ -509,6 +509,107 @@ export type Database = {
           },
         ]
       }
+      entregaveis: {
+        Row: {
+          codigo: string | null
+          created_at: string
+          criacao: boolean
+          data_entregavel: string | null
+          decisor: string | null
+          descricao: string
+          divulgar_entregavel: boolean
+          encerramento: boolean
+          grupo_trabalho_id: string
+          id: string
+          link_doc: string | null
+          notas_secap: string | null
+          num_doc_plus: string | null
+          ponto_situacao: string | null
+          status: Database["public"]["Enums"]["deliverable_status"]
+          updated_at: string
+        }
+        Insert: {
+          codigo?: string | null
+          created_at?: string
+          criacao?: boolean
+          data_entregavel?: string | null
+          decisor?: string | null
+          descricao: string
+          divulgar_entregavel?: boolean
+          encerramento?: boolean
+          grupo_trabalho_id: string
+          id?: string
+          link_doc?: string | null
+          notas_secap?: string | null
+          num_doc_plus?: string | null
+          ponto_situacao?: string | null
+          status?: Database["public"]["Enums"]["deliverable_status"]
+          updated_at?: string
+        }
+        Update: {
+          codigo?: string | null
+          created_at?: string
+          criacao?: boolean
+          data_entregavel?: string | null
+          decisor?: string | null
+          descricao?: string
+          divulgar_entregavel?: boolean
+          encerramento?: boolean
+          grupo_trabalho_id?: string
+          id?: string
+          link_doc?: string | null
+          notas_secap?: string | null
+          num_doc_plus?: string | null
+          ponto_situacao?: string | null
+          status?: Database["public"]["Enums"]["deliverable_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "entregaveis_grupo_trabalho_id_fkey"
+            columns: ["grupo_trabalho_id"]
+            isOneToOne: false
+            referencedRelation: "grupos_trabalho"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      grupos_trabalho: {
+        Row: {
+          codigo: string
+          created_at: string
+          designacao: string
+          divulgar_existencia: boolean
+          id: string
+          observacoes_secap: string | null
+          status: Database["public"]["Enums"]["work_group_status"]
+          tema: string | null
+          updated_at: string
+        }
+        Insert: {
+          codigo: string
+          created_at?: string
+          designacao: string
+          divulgar_existencia?: boolean
+          id?: string
+          observacoes_secap?: string | null
+          status?: Database["public"]["Enums"]["work_group_status"]
+          tema?: string | null
+          updated_at?: string
+        }
+        Update: {
+          codigo?: string
+          created_at?: string
+          designacao?: string
+          divulgar_existencia?: boolean
+          id?: string
+          observacoes_secap?: string | null
+          status?: Database["public"]["Enums"]["work_group_status"]
+          tema?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       meeting_participants: {
         Row: {
           administrator_id: string
@@ -786,11 +887,13 @@ export type Database = {
         | "Táctica"
         | "Operacional"
         | "Tomada de Conhecimento"
+      deliverable_status: "Em trabalho" | "Entregue"
       meeting_status: "Preparação" | "Em Curso" | "Concluída" | "Publicada"
       meeting_type: "CA" | "CEAAP" | "RT"
       point_type: "Informação" | "Para Decisão"
       priority: "Alta" | "Média" | "Baixa"
       vote_mode: "Unanimidade" | "Votação" | "Consenso"
+      work_group_status: "aberto" | "inativo" | "fechado"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -947,11 +1050,13 @@ export const Constants = {
         "Operacional",
         "Tomada de Conhecimento",
       ],
+      deliverable_status: ["Em trabalho", "Entregue"],
       meeting_status: ["Preparação", "Em Curso", "Concluída", "Publicada"],
       meeting_type: ["CA", "CEAAP", "RT"],
       point_type: ["Informação", "Para Decisão"],
       priority: ["Alta", "Média", "Baixa"],
       vote_mode: ["Unanimidade", "Votação", "Consenso"],
+      work_group_status: ["aberto", "inativo", "fechado"],
     },
   },
 } as const
