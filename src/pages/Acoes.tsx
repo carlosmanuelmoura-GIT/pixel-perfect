@@ -329,8 +329,8 @@ function ActionForm({
     return filtered.filter(d => d.agenda_point?.meeting_id === selectedMeetingId);
   }, [decisions, selectedMeetingId]);
 
-  // Get only CA meetings that have decisions marked for follow-up
-  const caMeetingsWithFollowUp = useMemo(() => {
+  // Get all meetings (CA, RT, CEAAP) that have decisions marked for follow-up
+  const meetingsWithFollowUp = useMemo(() => {
     const meetingIdsWithFollowUp = new Set(
       decisions
         .filter(d => d.has_followup && d.agenda_point?.meeting_id)
@@ -338,19 +338,19 @@ function ActionForm({
     );
     
     return meetings
-      .filter(m => m.type === 'CA' && meetingIdsWithFollowUp.has(m.id))
+      .filter(m => meetingIdsWithFollowUp.has(m.id))
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }, [meetings, decisions]);
 
   // Filter meetings by search term (date)
-  const filteredCaMeetings = useMemo(() => {
-    if (!meetingSearch.trim()) return caMeetingsWithFollowUp;
+  const filteredMeetingsWithFollowUp = useMemo(() => {
+    if (!meetingSearch.trim()) return meetingsWithFollowUp;
     
-    return caMeetingsWithFollowUp.filter(m => {
+    return meetingsWithFollowUp.filter(m => {
       const formattedDate = format(new Date(m.date), 'dd/MM/yyyy', { locale: pt });
       return formattedDate.includes(meetingSearch);
     });
-  }, [caMeetingsWithFollowUp, meetingSearch]);
+  }, [meetingsWithFollowUp, meetingSearch]);
 
   useMemo(() => {
     if (action) {
@@ -450,14 +450,14 @@ function ActionForm({
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">Todas as reuniões</SelectItem>
-                      {filteredCaMeetings.length === 0 && meetingSearch && (
+                      {filteredMeetingsWithFollowUp.length === 0 && meetingSearch && (
                         <div className="p-2 text-sm text-muted-foreground text-center">
                           Nenhuma reunião encontrada
                         </div>
                       )}
-                      {filteredCaMeetings.map(m => (
+                      {filteredMeetingsWithFollowUp.map(m => (
                         <SelectItem key={m.id} value={m.id}>
-                          CA - {format(new Date(m.date), 'dd/MM/yyyy', { locale: pt })}
+                          {m.type} - {format(new Date(m.date), 'dd/MM/yyyy', { locale: pt })}
                         </SelectItem>
                       ))}
                     </SelectContent>
