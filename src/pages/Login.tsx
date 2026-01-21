@@ -66,9 +66,14 @@ export default function Login() {
             <h1 className="text-2xl font-bold">Gestão Decisões CA</h1>
           </div>
           
-          <p className="text-white/90 text-xl max-w-md leading-relaxed">
-            Plataforma Interna do SEC para acompanhamento de: Reuniões de CA, Pontos de Agenda, Decisões, Ações de Follow-up, Protocolos e Grupos de Trabalho
-          </p>
+          <div className="max-w-md">
+            <p className="text-white font-bold text-xl mb-2">
+              Plataforma Interna do SEC para acompanhamento de:
+            </p>
+            <p className="text-white/80 text-base leading-relaxed">
+              Reuniões de CA, Pontos de Agenda, Decisões, Ações de Follow-up, Protocolos e Grupos de Trabalho
+            </p>
+          </div>
         </div>
         
         {/* Decorative circles */}
