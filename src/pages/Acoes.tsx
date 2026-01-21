@@ -306,6 +306,7 @@ function ActionForm({
   onUpdate: (data: any) => Promise<any>;
 }) {
   const [selectedMeetingId, setSelectedMeetingId] = useState<string>('');
+  const [meetingSearch, setMeetingSearch] = useState<string>('');
   const [formData, setFormData] = useState({
     decision_id: '',
     description: '',
@@ -319,13 +320,7 @@ function ActionForm({
   });
   const [activeTab, setActiveTab] = useState('form');
 
-  // Get only CA type meetings for the filter
-  const caMeetings = useMemo(() => 
-    meetings.filter(m => m.type === 'CA').sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()), 
-    [meetings]
-  );
-
-  // Only show decisions marked for follow-up and filtered by selected meeting
+  // Only show decisions marked for follow-up
   const followUpDecisions = useMemo(() => {
     const filtered = decisions.filter(d => d.has_followup);
     if (!selectedMeetingId) return filtered;
@@ -333,6 +328,29 @@ function ActionForm({
     // Filter by meeting via agenda_point.meeting_id
     return filtered.filter(d => d.agenda_point?.meeting_id === selectedMeetingId);
   }, [decisions, selectedMeetingId]);
+
+  // Get only CA meetings that have decisions marked for follow-up
+  const caMeetingsWithFollowUp = useMemo(() => {
+    const meetingIdsWithFollowUp = new Set(
+      decisions
+        .filter(d => d.has_followup && d.agenda_point?.meeting_id)
+        .map(d => d.agenda_point!.meeting_id)
+    );
+    
+    return meetings
+      .filter(m => m.type === 'CA' && meetingIdsWithFollowUp.has(m.id))
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  }, [meetings, decisions]);
+
+  // Filter meetings by search term (date)
+  const filteredCaMeetings = useMemo(() => {
+    if (!meetingSearch.trim()) return caMeetingsWithFollowUp;
+    
+    return caMeetingsWithFollowUp.filter(m => {
+      const formattedDate = format(new Date(m.date), 'dd/MM/yyyy', { locale: pt });
+      return formattedDate.includes(meetingSearch);
+    });
+  }, [caMeetingsWithFollowUp, meetingSearch]);
 
   useMemo(() => {
     if (action) {
@@ -416,20 +434,35 @@ function ActionForm({
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
                 <Label>Reunião CA</Label>
-                <Select value={selectedMeetingId || 'all'} onValueChange={(v) => setSelectedMeetingId(v === 'all' ? '' : v)}>
-                  <SelectTrigger>
-                    <Calendar className="w-4 h-4 mr-2" />
-                    <SelectValue placeholder="Selecione a reunião (opcional)" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todas as reuniões</SelectItem>
-                    {caMeetings.map(m => (
-                      <SelectItem key={m.id} value={m.id}>
-                        CA - {format(new Date(m.date), 'dd/MM/yyyy', { locale: pt })}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="space-y-2">
+                  <div className="relative">
+                    <Input
+                      placeholder="Pesquisar por data (ex: 15/01/2025)..."
+                      value={meetingSearch}
+                      onChange={(e) => setMeetingSearch(e.target.value)}
+                      className="mb-2"
+                    />
+                  </div>
+                  <Select value={selectedMeetingId || 'all'} onValueChange={(v) => setSelectedMeetingId(v === 'all' ? '' : v)}>
+                    <SelectTrigger>
+                      <Calendar className="w-4 h-4 mr-2" />
+                      <SelectValue placeholder="Selecione a reunião (opcional)" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todas as reuniões</SelectItem>
+                      {filteredCaMeetings.length === 0 && meetingSearch && (
+                        <div className="p-2 text-sm text-muted-foreground text-center">
+                          Nenhuma reunião encontrada
+                        </div>
+                      )}
+                      {filteredCaMeetings.map(m => (
+                        <SelectItem key={m.id} value={m.id}>
+                          CA - {format(new Date(m.date), 'dd/MM/yyyy', { locale: pt })}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
 
               <div className="space-y-2">
