@@ -13,6 +13,7 @@ import Agenda from "./pages/Agenda";
 import Acoes from "./pages/Acoes";
 import Indicadores from "./pages/Indicadores";
 import Administradores from "./pages/Administradores";
+import Protocolos from "./pages/Protocolos";
 import Login from "./pages/Login";
 import Registar from "./pages/Registar";
 import Unauthorized from "./pages/Unauthorized";
@@ -79,6 +80,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <Administradores />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/protocolos"
+              element={
+                <ProtectedRoute>
+                  <Protocolos />
                 </ProtectedRoute>
               }
             />

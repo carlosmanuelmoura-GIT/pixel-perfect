@@ -9,7 +9,8 @@ import {
   ChevronLeft,
   ChevronRight,
   Users,
-  FileText
+  FileText,
+  Handshake
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -28,6 +29,7 @@ const navItems: NavItem[] = [
 ];
 
 const bottomItems: NavItem[] = [
+  { icon: Handshake, label: 'Protocolos', path: '/protocolos' },
   { icon: Users, label: 'Administração', path: '/administradores' },
 ];
 

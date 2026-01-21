@@ -1401,3 +1401,116 @@ export function useDashboardMetrics() {
     },
   });
 }
+
+// ============== PROTOCOLS ==============
+export interface Protocol {
+  id: string;
+  versao: string | null;
+  nome: string;
+  divulgacao_existencia: boolean;
+  divulgacao_conteudo: boolean;
+  em_vigor: boolean;
+  data_celebracao: string | null;
+  data_producao_efeitos: string | null;
+  decisor: string | null;
+  data_aprovacao: string | null;
+  tipo_ambito: string | null;
+  tema: string | null;
+  objeto: string | null;
+  data_termo: string | null;
+  renovacao_automatica: boolean;
+  id_doc_plus: string | null;
+  link_doc_plus: string | null;
+  observacoes: string | null;
+  alteracoes: string | null;
+  departamento_responsavel_id: string | null;
+  created_at: string;
+  updated_at: string;
+  departamento_responsavel?: Pelouro | null;
+}
+
+export function useProtocols() {
+  return useQuery({
+    queryKey: ['protocols'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('protocols')
+        .select(`
+          *,
+          departamento_responsavel:pelouros(*)
+        `)
+        .order('nome', { ascending: true });
+      
+      if (error) throw error;
+      return data as Protocol[];
+    },
+  });
+}
+
+export function useCreateProtocol() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (protocol: Omit<Protocol, 'id' | 'created_at' | 'updated_at' | 'departamento_responsavel'>) => {
+      const { data, error } = await supabase
+        .from('protocols')
+        .insert(protocol)
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['protocols'] });
+      toast.success('Protocolo criado com sucesso');
+    },
+    onError: (error) => {
+      toast.error('Erro ao criar protocolo: ' + error.message);
+    },
+  });
+}
+
+export function useUpdateProtocol() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async ({ id, ...updates }: Partial<Protocol> & { id: string }) => {
+      const { error } = await supabase
+        .from('protocols')
+        .update(updates)
+        .eq('id', id);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['protocols'] });
+      toast.success('Protocolo atualizado com sucesso');
+    },
+    onError: (error) => {
+      toast.error('Erro ao atualizar protocolo: ' + error.message);
+    },
+  });
+}
+
+export function useDeleteProtocol() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('protocols')
+        .delete()
+        .eq('id', id);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['protocols'] });
+      toast.success('Protocolo eliminado com sucesso');
+    },
+    onError: (error) => {
+      toast.error('Erro ao eliminar protocolo: ' + error.message);
+    },
+  });
+}
