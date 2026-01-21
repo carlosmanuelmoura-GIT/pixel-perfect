@@ -185,18 +185,33 @@ export default function Agenda() {
     }
   };
 
-  // Handle URL query parameter for direct point navigation
+  // Handle URL query parameters for filtering and direct point navigation
   useEffect(() => {
     const pointId = searchParams.get('point');
+    const meetingId = searchParams.get('meeting');
+    
+    // Pre-filter by meeting if specified
+    if (meetingId && meetings.length > 0) {
+      const meetingExists = meetings.some(m => m.id === meetingId);
+      if (meetingExists) {
+        setMeetingFilter(meetingId);
+      }
+      // Clear the meeting param after applying filter
+      searchParams.delete('meeting');
+      setSearchParams(searchParams);
+    }
+    
+    // Open specific point detail if specified
     if (pointId && agendaPoints.length > 0) {
       const point = agendaPoints.find(p => p.id === pointId);
       if (point) {
         setSelectedPoint(point);
-        // Clear the URL param after opening
-        setSearchParams({});
+        // Clear the point param after opening
+        searchParams.delete('point');
+        setSearchParams(searchParams);
       }
     }
-  }, [searchParams, agendaPoints, setSearchParams]);
+  }, [searchParams, agendaPoints, meetings, setSearchParams]);
 
   const filteredPoints = useMemo(() => {
     return agendaPoints.filter(point => {
