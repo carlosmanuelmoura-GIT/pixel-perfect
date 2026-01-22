@@ -487,6 +487,7 @@ function MeetingForm({
     type: 'CA' as MeetingType,
     location: '',
     status: 'Preparação' as MeetingStatus,
+    reference_id: '',
   });
 
   useMemo(() => {
@@ -498,6 +499,7 @@ function MeetingForm({
         type: meeting.type,
         location: meeting.location,
         status: meeting.status,
+        reference_id: meeting.reference_id || '',
       });
     } else {
       setFormData({
@@ -506,6 +508,7 @@ function MeetingForm({
         type: 'CA',
         location: '',
         status: 'Preparação',
+        reference_id: '',
       });
     }
   }, [meeting, open]);
@@ -521,6 +524,7 @@ function MeetingForm({
         type: formData.type,
         location: formData.location,
         status: formData.status,
+        reference_id: formData.reference_id || null,
       });
     } else {
       await onCreate({ 
@@ -528,6 +532,7 @@ function MeetingForm({
         type: formData.type,
         location: formData.location,
         status: formData.status,
+        reference_id: formData.reference_id || null,
       });
     }
     onOpenChange(false);
@@ -592,15 +597,26 @@ function MeetingForm({
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="location">Local *</Label>
-            <Input
-              id="location"
-              value={formData.location}
-              onChange={(e) => setFormData(f => ({ ...f, location: e.target.value }))}
-              placeholder="Ex: Sala de Reuniões Principal"
-              required
-            />
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="location">Local *</Label>
+              <Input
+                id="location"
+                value={formData.location}
+                onChange={(e) => setFormData(f => ({ ...f, location: e.target.value }))}
+                placeholder="Ex: Sala de Reuniões Principal"
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="reference_id">ID da Reunião</Label>
+              <Input
+                id="reference_id"
+                value={formData.reference_id}
+                onChange={(e) => setFormData(f => ({ ...f, reference_id: e.target.value }))}
+                placeholder="Ex: CA-2026-001"
+              />
+            </div>
           </div>
 
           <DialogFooter>
@@ -650,6 +666,11 @@ function MeetingCard({ meeting, participantNames, index, onClick, onEdit, onDele
               >
                 {meeting.type}
               </Badge>
+              {meeting.reference_id && (
+                <Badge variant="secondary" className="font-mono text-xs">
+                  {meeting.reference_id}
+                </Badge>
+              )}
               <span className={cn("status-badge", meetingStatusStyles[meeting.status])}>
                 {meeting.status}
               </span>
