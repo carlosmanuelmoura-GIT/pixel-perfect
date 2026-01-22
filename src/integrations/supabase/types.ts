@@ -739,6 +739,7 @@ export type Database = {
           date: string
           id: string
           location: string
+          reference_id: string | null
           status: Database["public"]["Enums"]["meeting_status"]
           type: Database["public"]["Enums"]["meeting_type"]
           updated_at: string
@@ -750,6 +751,7 @@ export type Database = {
           date: string
           id?: string
           location: string
+          reference_id?: string | null
           status?: Database["public"]["Enums"]["meeting_status"]
           type: Database["public"]["Enums"]["meeting_type"]
           updated_at?: string
@@ -761,6 +763,7 @@ export type Database = {
           date?: string
           id?: string
           location?: string
+          reference_id?: string | null
           status?: Database["public"]["Enums"]["meeting_status"]
           type?: Database["public"]["Enums"]["meeting_type"]
           updated_at?: string
