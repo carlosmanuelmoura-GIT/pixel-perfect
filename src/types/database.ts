@@ -43,6 +43,7 @@ export interface Meeting {
   type: MeetingType;
   location: string;
   status: MeetingStatus;
+  reference_id: string | null;
   agenda_points_count: number;
   created_by: string | null;
   created_at: string;
