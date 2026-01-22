@@ -206,15 +206,76 @@ serve(async (req) => {
 
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+    
+    // Get authorization header from request
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: 'Não autorizado - autenticação necessária' }),
+        { 
+          status: 401, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
+    
+    // Create client with user's token (respects RLS)
+    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } }
+    });
+    
+    // Verify user is authenticated
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    if (userError || !user) {
+      console.error('Auth error:', userError);
+      return new Response(
+        JSON.stringify({ error: 'Não autorizado - token inválido' }),
+        { 
+          status: 401, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
+    
+    // Check user has appropriate role (admin, sec, or gestao)
+    const { data: roleData, error: roleError } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', user.id)
+      .single();
+    
+    if (roleError || !roleData) {
+      console.error('Role check error:', roleError);
+      return new Response(
+        JSON.stringify({ error: 'Não autorizado - role não encontrado' }),
+        { 
+          status: 403, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
+    
+    const allowedRoles = ['admin', 'sec', 'gestao'];
+    if (!allowedRoles.includes(roleData.role)) {
+      console.log(`User ${user.id} with role ${roleData.role} denied export access`);
+      return new Response(
+        JSON.stringify({ error: 'Proibido - requer role admin, sec ou gestao' }),
+        { 
+          status: 403, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
+
+    console.log(`Export authorized for user ${user.id} with role ${roleData.role}`);
 
     // Parse request body
     const { statuses } = await req.json();
     
     console.log('Exporting actions with statuses:', statuses);
 
-    // Fetch actions with related data
+    // Fetch actions with related data - now respects RLS
     let query = supabase
       .from('actions')
       .select(`

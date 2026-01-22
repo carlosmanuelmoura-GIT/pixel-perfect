@@ -105,6 +105,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "administrator_pelouros_administrator_id_fkey"
+            columns: ["administrator_id"]
+            isOneToOne: false
+            referencedRelation: "administrators_public"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "administrator_pelouros_pelouro_id_fkey"
             columns: ["pelouro_id"]
             isOneToOne: false
@@ -351,6 +358,13 @@ export type Database = {
             columns: ["proposer_id"]
             isOneToOne: false
             referencedRelation: "administrators"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agenda_points_proposer_id_fkey"
+            columns: ["proposer_id"]
+            isOneToOne: false
+            referencedRelation: "administrators_public"
             referencedColumns: ["id"]
           },
         ]
@@ -702,6 +716,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "meeting_participants_administrator_id_fkey"
+            columns: ["administrator_id"]
+            isOneToOne: false
+            referencedRelation: "administrators_public"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "meeting_participants_meeting_id_fkey"
             columns: ["meeting_id"]
             isOneToOne: false
@@ -936,7 +957,33 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      administrators_public: {
+        Row: {
+          avatar_url: string | null
+          created_at: string | null
+          id: string | null
+          name: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string | null
+          id?: string | null
+          name?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string | null
+          id?: string | null
+          name?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       get_user_role: {
