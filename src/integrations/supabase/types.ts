@@ -685,6 +685,54 @@ export type Database = {
           },
         ]
       }
+      import_history: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          error_count: number
+          errors: Json | null
+          file_name: string
+          id: string
+          imported_ids: Json | null
+          rolled_back_at: string | null
+          status: string
+          success_count: number
+          table_name: string
+          total_rows: number
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          error_count?: number
+          errors?: Json | null
+          file_name: string
+          id?: string
+          imported_ids?: Json | null
+          rolled_back_at?: string | null
+          status?: string
+          success_count?: number
+          table_name: string
+          total_rows?: number
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          error_count?: number
+          errors?: Json | null
+          file_name?: string
+          id?: string
+          imported_ids?: Json | null
+          rolled_back_at?: string | null
+          status?: string
+          success_count?: number
+          table_name?: string
+          total_rows?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       meeting_participants: {
         Row: {
           administrator_id: string
