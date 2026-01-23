@@ -9,7 +9,10 @@ import {
   Shield,
   Mail,
   Settings,
-  Briefcase
+  Briefcase,
+  Upload,
+  History,
+  Database,
 } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -65,6 +68,8 @@ import {
 } from '@/hooks/useSupabaseData';
 import type { Administrator, Pelouro, UserRole, AppRole, Profile } from '@/types/database';
 import { cn } from '@/lib/utils';
+import { ImportDataDialog } from '@/components/admin/ImportDataDialog';
+import { ImportHistoryDialog } from '@/components/admin/ImportHistoryDialog';
 
 const roleLabels: Record<AppRole, { label: string; color: string }> = {
   admin: { label: 'Administrador', color: 'bg-status-critical/10 text-status-critical' },
@@ -77,24 +82,45 @@ const appRoles: AppRole[] = ['admin', 'sec', 'gestao', 'leitor'];
 
 export default function Administradores() {
   const [activeTab, setActiveTab] = useState('administrators');
+  const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
+  const [isHistoryDialogOpen, setIsHistoryDialogOpen] = useState(false);
 
   return (
     <AppLayout title="Administradores e Configurações" subtitle="Gestão de utilizadores, roles e configurações">
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList>
-          <TabsTrigger value="administrators" className="gap-2">
-            <Users className="w-4 h-4" />
-            Administradores
-          </TabsTrigger>
-          <TabsTrigger value="roles" className="gap-2">
-            <Shield className="w-4 h-4" />
-            Utilizadores & Roles
-          </TabsTrigger>
-          <TabsTrigger value="pelouros" className="gap-2">
-            <Briefcase className="w-4 h-4" />
-            Departamentos
-          </TabsTrigger>
-        </TabsList>
+        <div className="flex items-center justify-between flex-wrap gap-4">
+          <TabsList>
+            <TabsTrigger value="administrators" className="gap-2">
+              <Users className="w-4 h-4" />
+              Administradores
+            </TabsTrigger>
+            <TabsTrigger value="roles" className="gap-2">
+              <Shield className="w-4 h-4" />
+              Utilizadores & Roles
+            </TabsTrigger>
+            <TabsTrigger value="pelouros" className="gap-2">
+              <Briefcase className="w-4 h-4" />
+              Departamentos
+            </TabsTrigger>
+            <TabsTrigger value="data" className="gap-2">
+              <Database className="w-4 h-4" />
+              Dados
+            </TabsTrigger>
+          </TabsList>
+
+          {activeTab === 'data' && (
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setIsHistoryDialogOpen(true)} className="gap-2">
+                <History className="w-4 h-4" />
+                Histórico
+              </Button>
+              <Button onClick={() => setIsImportDialogOpen(true)} className="gap-2">
+                <Upload className="w-4 h-4" />
+                Importar Dados
+              </Button>
+            </div>
+          )}
+        </div>
 
         <TabsContent value="administrators">
           <AdministratorsTab />
@@ -107,7 +133,18 @@ export default function Administradores() {
         <TabsContent value="pelouros">
           <PelourosTab />
         </TabsContent>
+
+        <TabsContent value="data">
+          <DataTab 
+            onOpenImport={() => setIsImportDialogOpen(true)}
+            onOpenHistory={() => setIsHistoryDialogOpen(true)}
+          />
+        </TabsContent>
       </Tabs>
+
+      {/* Import Dialogs */}
+      <ImportDataDialog open={isImportDialogOpen} onOpenChange={setIsImportDialogOpen} />
+      <ImportHistoryDialog open={isHistoryDialogOpen} onOpenChange={setIsHistoryDialogOpen} />
     </AppLayout>
   );
 }
@@ -683,5 +720,133 @@ function PelouroForm({
         </form>
       </DialogContent>
     </Dialog>
+  );
+}
+
+// Data Tab
+function DataTab({ 
+  onOpenImport, 
+  onOpenHistory 
+}: { 
+  onOpenImport: () => void; 
+  onOpenHistory: () => void;
+}) {
+  return (
+    <div className="space-y-6">
+      <div>
+        <h3 className="text-lg font-semibold">Importação de Dados</h3>
+        <p className="text-sm text-muted-foreground">
+          Importe dados em massa a partir de ficheiros Excel ou CSV
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Import Card */}
+        <div className="bg-card rounded-xl border border-border/50 p-6 shadow-card">
+          <div className="flex items-center gap-4 mb-4">
+            <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+              <Upload className="w-6 h-6 text-primary" />
+            </div>
+            <div>
+              <h4 className="font-medium">Importar Dados</h4>
+              <p className="text-sm text-muted-foreground">
+                Upload de ficheiros XLSX ou CSV
+              </p>
+            </div>
+          </div>
+          <p className="text-sm text-muted-foreground mb-4">
+            Importe dados para qualquer tabela do sistema. O assistente irá guiá-lo através do processo de mapeamento de colunas e validação de dados.
+          </p>
+          <ul className="text-sm text-muted-foreground space-y-1 mb-4">
+            <li className="flex items-center gap-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-primary" />
+              Suporte para XLSX, XLS e CSV
+            </li>
+            <li className="flex items-center gap-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-primary" />
+              Mapeamento automático de colunas
+            </li>
+            <li className="flex items-center gap-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-primary" />
+              Validação antes da importação
+            </li>
+            <li className="flex items-center gap-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-primary" />
+              Preview dos dados
+            </li>
+          </ul>
+          <Button onClick={onOpenImport} className="w-full gap-2">
+            <Upload className="w-4 h-4" />
+            Iniciar Importação
+          </Button>
+        </div>
+
+        {/* History Card */}
+        <div className="bg-card rounded-xl border border-border/50 p-6 shadow-card">
+          <div className="flex items-center gap-4 mb-4">
+            <div className="w-12 h-12 rounded-full bg-status-info/10 flex items-center justify-center">
+              <History className="w-6 h-6 text-status-info" />
+            </div>
+            <div>
+              <h4 className="font-medium">Histórico de Importações</h4>
+              <p className="text-sm text-muted-foreground">
+                Visualize importações anteriores
+              </p>
+            </div>
+          </div>
+          <p className="text-sm text-muted-foreground mb-4">
+            Consulte o histórico de todas as importações realizadas, incluindo estatísticas de sucesso/erro e possibilidade de rollback.
+          </p>
+          <ul className="text-sm text-muted-foreground space-y-1 mb-4">
+            <li className="flex items-center gap-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-status-info" />
+              Registo de todas as importações
+            </li>
+            <li className="flex items-center gap-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-status-info" />
+              Detalhes de erros
+            </li>
+            <li className="flex items-center gap-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-status-info" />
+              Rollback de importações
+            </li>
+            <li className="flex items-center gap-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-status-info" />
+              Logs detalhados
+            </li>
+          </ul>
+          <Button variant="outline" onClick={onOpenHistory} className="w-full gap-2">
+            <History className="w-4 h-4" />
+            Ver Histórico
+          </Button>
+        </div>
+      </div>
+
+      {/* Supported Tables Info */}
+      <div className="bg-muted/50 rounded-xl border border-border/50 p-6">
+        <h4 className="font-medium mb-4">Tabelas Suportadas para Importação</h4>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+          {[
+            { name: 'Administradores', icon: Users },
+            { name: 'Departamentos', icon: Briefcase },
+            { name: 'Reuniões', icon: Database },
+            { name: 'Pontos de Agenda', icon: Database },
+            { name: 'Decisões', icon: Database },
+            { name: 'Ações', icon: Database },
+            { name: 'Protocolos', icon: Database },
+            { name: 'Grupos de Trabalho', icon: Database },
+            { name: 'Entregáveis', icon: Database },
+          ].map((table) => (
+            <div 
+              key={table.name}
+              className="flex items-center gap-2 px-3 py-2 bg-background rounded-lg border border-border/50"
+            >
+              <table.icon className="w-4 h-4 text-muted-foreground" />
+              <span className="text-sm">{table.name}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
   );
 }
