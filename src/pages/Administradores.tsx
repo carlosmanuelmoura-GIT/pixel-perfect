@@ -13,6 +13,7 @@ import {
   Upload,
   History,
   Database,
+  Download,
 } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -731,16 +732,79 @@ function DataTab({
   onOpenImport: () => void; 
   onOpenHistory: () => void;
 }) {
+  const [isExporting, setIsExporting] = useState(false);
+
+  const handleExport = async () => {
+    try {
+      setIsExporting(true);
+      
+      const { data: { session } } = await (await import('@/integrations/supabase/client')).supabase.auth.getSession();
+      
+      if (!session) {
+        throw new Error('Sessão não encontrada');
+      }
+
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/export-data`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Erro ao exportar dados');
+      }
+
+      // Download the file
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      
+      // Get filename from header or generate default
+      const contentDisposition = response.headers.get('Content-Disposition');
+      const filenameMatch = contentDisposition?.match(/filename="(.+)"/);
+      const filename = filenameMatch ? filenameMatch[1] : `export_dados_${new Date().toISOString().slice(0, 10)}.xls`;
+      
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+
+      const { toast } = await import('@/hooks/use-toast');
+      toast({
+        title: 'Exportação concluída',
+        description: 'O ficheiro Excel foi descarregado com sucesso.',
+      });
+    } catch (error) {
+      console.error('Export error:', error);
+      const { toast } = await import('@/hooks/use-toast');
+      toast({
+        title: 'Erro na exportação',
+        description: error instanceof Error ? error.message : 'Ocorreu um erro ao exportar os dados.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="text-lg font-semibold">Importação de Dados</h3>
+        <h3 className="text-lg font-semibold">Gestão de Dados</h3>
         <p className="text-sm text-muted-foreground">
-          Importe dados em massa a partir de ficheiros Excel ou CSV
+          Importe e exporte dados do sistema
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Import Card */}
         <div className="bg-card rounded-xl border border-border/50 p-6 shadow-card">
           <div className="flex items-center gap-4 mb-4">
@@ -778,6 +842,60 @@ function DataTab({
           <Button onClick={onOpenImport} className="w-full gap-2">
             <Upload className="w-4 h-4" />
             Iniciar Importação
+          </Button>
+        </div>
+
+        {/* Export Card */}
+        <div className="bg-card rounded-xl border border-border/50 p-6 shadow-card">
+          <div className="flex items-center gap-4 mb-4">
+            <div className="w-12 h-12 rounded-full bg-status-success/10 flex items-center justify-center">
+              <Download className="w-6 h-6 text-status-success" />
+            </div>
+            <div>
+              <h4 className="font-medium">Exportar Dados</h4>
+              <p className="text-sm text-muted-foreground">
+                Download XLS para analytics
+              </p>
+            </div>
+          </div>
+          <p className="text-sm text-muted-foreground mb-4">
+            Exporte todos os dados do sistema num ficheiro Excel otimizado para import em Data Warehouses e análise em Power BI.
+          </p>
+          <ul className="text-sm text-muted-foreground space-y-1 mb-4">
+            <li className="flex items-center gap-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-status-success" />
+              Todas as tabelas do sistema
+            </li>
+            <li className="flex items-center gap-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-status-success" />
+              Dados relacionados incluídos
+            </li>
+            <li className="flex items-center gap-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-status-success" />
+              Formato compatível com Power BI
+            </li>
+            <li className="flex items-center gap-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-status-success" />
+              Uma folha por entidade
+            </li>
+          </ul>
+          <Button 
+            variant="outline" 
+            onClick={handleExport} 
+            disabled={isExporting}
+            className="w-full gap-2 border-status-success/50 text-status-success hover:bg-status-success/10"
+          >
+            {isExporting ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                A exportar...
+              </>
+            ) : (
+              <>
+                <Download className="w-4 h-4" />
+                Exportar XLS
+              </>
+            )}
           </Button>
         </div>
 
@@ -824,18 +942,20 @@ function DataTab({
 
       {/* Supported Tables Info */}
       <div className="bg-muted/50 rounded-xl border border-border/50 p-6">
-        <h4 className="font-medium mb-4">Tabelas Suportadas para Importação</h4>
+        <h4 className="font-medium mb-4">Tabelas Incluídas na Exportação/Importação</h4>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
           {[
-            { name: 'Administradores', icon: Users },
-            { name: 'Departamentos', icon: Briefcase },
             { name: 'Reuniões', icon: Database },
             { name: 'Pontos de Agenda', icon: Database },
             { name: 'Decisões', icon: Database },
             { name: 'Ações', icon: Database },
+            { name: 'Administradores', icon: Users },
+            { name: 'Departamentos', icon: Briefcase },
             { name: 'Protocolos', icon: Database },
             { name: 'Grupos de Trabalho', icon: Database },
             { name: 'Entregáveis', icon: Database },
+            { name: 'Utilizadores', icon: Users },
+            { name: 'Participantes', icon: Users },
           ].map((table) => (
             <div 
               key={table.name}
