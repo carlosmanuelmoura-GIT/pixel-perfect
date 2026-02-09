@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { format, subMonths, startOfMonth, endOfMonth } from 'date-fns';
 import { pt } from 'date-fns/locale';
 import { 
@@ -42,6 +43,7 @@ const actionStatusColors: Record<ActionStatus, string> = {
 export default function Indicadores() {
   const [period, setPeriod] = useState('6');
   
+  const navigate = useNavigate();
   const { data: meetings = [], isLoading: meetingsLoading } = useMeetings();
   const { data: agendaPoints = [], isLoading: agendaLoading } = useAgendaPoints();
   const { data: actions = [], isLoading: actionsLoading } = useActions();
@@ -148,7 +150,7 @@ export default function Indicadores() {
 
         {/* KPI Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card>
+          <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigate('/acoes?filter=Concluída')}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Taxa de Conclusão</CardTitle>
               <CheckCircle className="h-4 w-4 text-status-success" />
@@ -161,7 +163,7 @@ export default function Indicadores() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigate('/agenda')}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Média Pontos/Reunião</CardTitle>
               <BarChart3 className="h-4 w-4 text-primary" />
@@ -174,7 +176,7 @@ export default function Indicadores() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigate('/acoes')}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Decisões c/ Follow-up</CardTitle>
               <Percent className="h-4 w-4 text-status-info" />
@@ -187,7 +189,7 @@ export default function Indicadores() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigate('/reunioes')}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Total Reuniões</CardTitle>
               <Calendar className="h-4 w-4 text-accent" />
