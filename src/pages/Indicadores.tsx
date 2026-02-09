@@ -216,7 +216,7 @@ export default function Indicadores() {
             <CardContent>
               <div className="h-[300px]">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={meetingsPerMonth}>
+                  <BarChart data={meetingsPerMonth} className="cursor-pointer">
                     <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
                     <XAxis dataKey="month" className="text-xs" tick={{ fill: 'hsl(var(--muted-foreground))' }} />
                     <YAxis className="text-xs" tick={{ fill: 'hsl(var(--muted-foreground))' }} />
@@ -227,7 +227,13 @@ export default function Indicadores() {
                         borderRadius: '8px'
                       }}
                     />
-                    <Bar dataKey="count" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                    <Bar 
+                      dataKey="count" 
+                      fill="hsl(var(--primary))" 
+                      radius={[4, 4, 0, 0]} 
+                      cursor="pointer"
+                      onClick={() => navigate('/reunioes')}
+                    />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
@@ -254,7 +260,9 @@ export default function Indicadores() {
                       outerRadius={100}
                       paddingAngle={2}
                       dataKey="value"
+                      cursor="pointer"
                       label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
+                      onClick={(data) => navigate(`/acoes?filter=${encodeURIComponent(data.name)}`)}
                     >
                       {actionsByStatus.map((entry, index) => (
                         <Cell 
@@ -287,7 +295,7 @@ export default function Indicadores() {
             <CardContent>
               <div className="h-[300px]">
                 <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={agendaPointsTrend}>
+                  <LineChart data={agendaPointsTrend} className="cursor-pointer" onClick={() => navigate('/agenda')}>
                     <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
                     <XAxis dataKey="month" className="text-xs" tick={{ fill: 'hsl(var(--muted-foreground))' }} />
                     <YAxis className="text-xs" tick={{ fill: 'hsl(var(--muted-foreground))' }} />
@@ -305,7 +313,7 @@ export default function Indicadores() {
                       name="Total Criados"
                       stroke="hsl(var(--primary))" 
                       strokeWidth={2}
-                      dot={{ fill: 'hsl(var(--primary))' }}
+                      dot={{ fill: 'hsl(var(--primary))', cursor: 'pointer' }}
                     />
                     <Line 
                       type="monotone" 
@@ -313,7 +321,7 @@ export default function Indicadores() {
                       name="Deliberados"
                       stroke="hsl(var(--status-success))" 
                       strokeWidth={2}
-                      dot={{ fill: 'hsl(var(--status-success))' }}
+                      dot={{ fill: 'hsl(var(--status-success))', cursor: 'pointer' }}
                     />
                   </LineChart>
                 </ResponsiveContainer>
