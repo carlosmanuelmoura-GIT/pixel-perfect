@@ -33,7 +33,7 @@ const months = [
 export default function Dashboard() {
   const navigate = useNavigate();
   const now = new Date();
-  const [selectedMonth, setSelectedMonth] = useState(String(now.getMonth()));
+  const [selectedMonth, setSelectedMonth] = useState('all');
   const [selectedYear, setSelectedYear] = useState(String(now.getFullYear()));
 
   const { data: metrics, isLoading: metricsLoading } = useDashboardMetrics();
@@ -47,11 +47,12 @@ export default function Dashboard() {
   }, []);
 
   const dateRange = useMemo(() => {
-    const month = parseInt(selectedMonth);
     const year = parseInt(selectedYear);
-    const start = new Date(year, month, 1);
-    const end = new Date(year, month + 1, 0, 23, 59, 59);
-    return { start, end };
+    if (selectedMonth === 'all') {
+      return { start: new Date(year, 0, 1), end: new Date(year, 11, 31, 23, 59, 59) };
+    }
+    const month = parseInt(selectedMonth);
+    return { start: new Date(year, month, 1), end: new Date(year, month + 1, 0, 23, 59, 59) };
   }, [selectedMonth, selectedYear]);
 
   const filteredMeetings = useMemo(() => 
@@ -85,6 +86,7 @@ export default function Dashboard() {
               <SelectValue placeholder="Mês" />
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value="all">Todos os meses</SelectItem>
               {months.map((month, i) => (
                 <SelectItem key={i} value={String(i)}>{month}</SelectItem>
               ))}
