@@ -4,7 +4,6 @@ import { format, subMonths, startOfMonth, endOfMonth } from 'date-fns';
 import { pt } from 'date-fns/locale';
 import { 
   BarChart3, 
-  TrendingUp, 
   Calendar, 
   CheckCircle, 
   Clock, 
@@ -21,10 +20,7 @@ import {
   ResponsiveContainer,
   PieChart,
   Pie,
-  Cell,
-  LineChart,
-  Line,
-  Legend
+  Cell
 } from 'recharts';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -42,6 +38,7 @@ const actionStatusColors: Record<ActionStatus, string> = {
 
 export default function Indicadores() {
   const [period, setPeriod] = useState('6');
+  const [year, setYear] = useState(new Date().getFullYear().toString());
   
   const navigate = useNavigate();
   const { data: meetings = [], isLoading: meetingsLoading } = useMeetings();
@@ -50,6 +47,30 @@ export default function Indicadores() {
   const { data: decisions = [], isLoading: decisionsLoading } = useDecisions();
 
   const isLoading = meetingsLoading || agendaLoading || actionsLoading || decisionsLoading;
+
+  // Filter data by selected year
+  const yearStart = new Date(parseInt(year), 0, 1);
+  const yearEnd = new Date(parseInt(year), 11, 31, 23, 59, 59);
+  
+  const filteredMeetings = meetings.filter(m => {
+    const d = new Date(m.date);
+    return d >= yearStart && d <= yearEnd;
+  });
+
+  const filteredAgendaPoints = agendaPoints.filter(p => {
+    const d = new Date(p.created_at);
+    return d >= yearStart && d <= yearEnd;
+  });
+
+  const filteredActions = actions.filter(a => {
+    const d = new Date(a.created_at);
+    return d >= yearStart && d <= yearEnd;
+  });
+
+  const filteredDecisions = decisions.filter(d => {
+    const dd = new Date(d.created_at);
+    return dd >= yearStart && dd <= yearEnd;
+  });
 
   // Meetings per month data
   const meetingsPerMonth = (() => {
@@ -61,7 +82,7 @@ export default function Indicadores() {
       const monthStart = startOfMonth(date);
       const monthEnd = endOfMonth(date);
       
-      const count = meetings.filter(m => {
+      const count = filteredMeetings.filter(m => {
         const meetingDate = new Date(m.date);
         return meetingDate >= monthStart && meetingDate <= monthEnd;
       }).length;
@@ -84,42 +105,46 @@ export default function Indicadores() {
     return Object.entries(statusCounts).map(([name, value]) => ({ name, value }));
   })();
 
-  // Agenda points trend over time
-  const agendaPointsTrend = (() => {
-    const months: { month: string; total: number; deliberados: number }[] = [];
-    const periodMonths = parseInt(period);
+  // Agenda points by meeting type
+  const agendaPointsByMeetingType = (() => {
+    const meetingTypeLabels: Record<string, string> = {
+      'CA': 'CA',
+      'CEAAP': 'Assuntos Administrativos',
+      'RT': 'RT',
+    };
     
-    for (let i = periodMonths - 1; i >= 0; i--) {
-      const date = subMonths(new Date(), i);
-      const monthStart = startOfMonth(date);
-      const monthEnd = endOfMonth(date);
-      
-      const monthPoints = agendaPoints.filter(p => {
-        const pointDate = new Date(p.created_at);
-        return pointDate >= monthStart && pointDate <= monthEnd;
-      });
-      
-      months.push({
-        month: format(date, 'MMM', { locale: pt }),
-        total: monthPoints.length,
-        deliberados: monthPoints.filter(p => p.status === 'Deliberado').length,
-      });
-    }
+    const typeCounts: Record<string, number> = { 'CA': 0, 'CEAAP': 0, 'RT': 0 };
     
-    return months;
+    filteredMeetings.forEach(meeting => {
+      typeCounts[meeting.type] = (typeCounts[meeting.type] || 0) + meeting.agenda_points_count;
+    });
+    
+    return Object.entries(typeCounts).map(([type, count]) => ({
+      name: meetingTypeLabels[type] || type,
+      type,
+      pontos: count,
+    }));
   })();
 
   // KPIs
-  const completedActions = actions.filter(a => a.status === 'Concluída').length;
-  const totalActiveActions = actions.filter(a => a.status !== 'Cancelada').length;
+  const completedActions = filteredActions.filter(a => a.status === 'Concluída').length;
+  const totalActiveActions = filteredActions.filter(a => a.status !== 'Cancelada').length;
   const completionRate = totalActiveActions > 0 ? Math.round((completedActions / totalActiveActions) * 100) : 0;
   
-  const avgPointsPerMeeting = meetings.length > 0 
-    ? Math.round(meetings.reduce((acc, m) => acc + m.agenda_points_count, 0) / meetings.length)
+  const avgPointsPerMeeting = filteredMeetings.length > 0 
+    ? Math.round(filteredMeetings.reduce((acc, m) => acc + m.agenda_points_count, 0) / filteredMeetings.length)
     : 0;
 
-  const decisionsWithFollowup = decisions.filter(d => d.has_followup).length;
-  const followupRate = decisions.length > 0 ? Math.round((decisionsWithFollowup / decisions.length) * 100) : 0;
+  const decisionsWithFollowup = filteredDecisions.filter(d => d.has_followup).length;
+  const followupRate = filteredDecisions.length > 0 ? Math.round((decisionsWithFollowup / filteredDecisions.length) * 100) : 0;
+
+  // Available years from meetings data
+  const availableYears = (() => {
+    const years = new Set<number>();
+    meetings.forEach(m => years.add(new Date(m.date).getFullYear()));
+    if (years.size === 0) years.add(new Date().getFullYear());
+    return Array.from(years).sort((a, b) => b - a);
+  })();
 
   if (isLoading) {
     return (
@@ -134,8 +159,18 @@ export default function Indicadores() {
   return (
     <AppLayout title="Indicadores" subtitle="Métricas e análises do Board">
       <div className="space-y-6">
-        {/* Period Filter */}
-        <div className="flex justify-end">
+        {/* Filters */}
+        <div className="flex justify-end gap-3">
+          <Select value={year} onValueChange={setYear}>
+            <SelectTrigger className="w-[120px]">
+              <SelectValue placeholder="Ano" />
+            </SelectTrigger>
+            <SelectContent>
+              {availableYears.map(y => (
+                <SelectItem key={y} value={y.toString()}>{y}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <Select value={period} onValueChange={setPeriod}>
             <SelectTrigger className="w-[180px]">
               <SelectValue placeholder="Período" />
@@ -152,7 +187,7 @@ export default function Indicadores() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigate('/acoes?filter=Concluída')}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Taxa de Conclusão</CardTitle>
+              <CardTitle className="text-sm font-medium">Taxa de Conclusão de Follow-ups</CardTitle>
               <CheckCircle className="h-4 w-4 text-status-success" />
             </CardHeader>
             <CardContent>
@@ -184,7 +219,7 @@ export default function Indicadores() {
             <CardContent>
               <div className="text-2xl font-bold">{followupRate}%</div>
               <p className="text-xs text-muted-foreground">
-                {decisionsWithFollowup} de {decisions.length} decisões
+                {decisionsWithFollowup} de {filteredDecisions.length} decisões
               </p>
             </CardContent>
           </Card>
@@ -195,9 +230,9 @@ export default function Indicadores() {
               <Calendar className="h-4 w-4 text-accent" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{meetings.length}</div>
+              <div className="text-2xl font-bold">{filteredMeetings.length}</div>
               <p className="text-xs text-muted-foreground">
-                no período selecionado
+                no ano {year}
               </p>
             </CardContent>
           </Card>
@@ -284,20 +319,20 @@ export default function Indicadores() {
             </CardContent>
           </Card>
 
-          {/* Agenda Points Trend */}
+          {/* Agenda Points by Meeting Type */}
           <Card className="lg:col-span-2">
             <CardHeader>
               <CardTitle className="text-base flex items-center gap-2">
-                <TrendingUp className="w-4 h-4" />
-                Evolução de Pontos de Agenda
+                <BarChart3 className="w-4 h-4" />
+                Pontos de Agenda por Tipo de Reunião
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="h-[300px]">
                 <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={agendaPointsTrend} className="cursor-pointer" onClick={() => navigate('/agenda')}>
+                  <BarChart data={agendaPointsByMeetingType} className="cursor-pointer">
                     <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                    <XAxis dataKey="month" className="text-xs" tick={{ fill: 'hsl(var(--muted-foreground))' }} />
+                    <XAxis dataKey="name" className="text-xs" tick={{ fill: 'hsl(var(--muted-foreground))' }} />
                     <YAxis className="text-xs" tick={{ fill: 'hsl(var(--muted-foreground))' }} />
                     <Tooltip 
                       contentStyle={{ 
@@ -306,24 +341,15 @@ export default function Indicadores() {
                         borderRadius: '8px'
                       }}
                     />
-                    <Legend />
-                    <Line 
-                      type="monotone" 
-                      dataKey="total" 
-                      name="Total Criados"
-                      stroke="hsl(var(--primary))" 
-                      strokeWidth={2}
-                      dot={{ fill: 'hsl(var(--primary))', cursor: 'pointer' }}
+                    <Bar 
+                      dataKey="pontos" 
+                      name="Pontos de Agenda"
+                      fill="hsl(var(--primary))" 
+                      radius={[4, 4, 0, 0]} 
+                      cursor="pointer"
+                      onClick={(data) => navigate(`/reunioes?type=${encodeURIComponent(data.type)}`)}
                     />
-                    <Line 
-                      type="monotone" 
-                      dataKey="deliberados" 
-                      name="Deliberados"
-                      stroke="hsl(var(--status-success))" 
-                      strokeWidth={2}
-                      dot={{ fill: 'hsl(var(--status-success))', cursor: 'pointer' }}
-                    />
-                  </LineChart>
+                  </BarChart>
                 </ResponsiveContainer>
               </div>
             </CardContent>
