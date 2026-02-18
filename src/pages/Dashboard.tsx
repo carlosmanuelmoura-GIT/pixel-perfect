@@ -1,3 +1,4 @@
+import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   Calendar, 
@@ -16,13 +17,60 @@ import {
   useAgendaPoints, 
   useActions 
 } from '@/hooks/useSupabaseData';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+
+const months = [
+  'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+  'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+];
 
 export default function Dashboard() {
   const navigate = useNavigate();
+  const now = new Date();
+  const [selectedMonth, setSelectedMonth] = useState(String(now.getMonth()));
+  const [selectedYear, setSelectedYear] = useState(String(now.getFullYear()));
+
   const { data: metrics, isLoading: metricsLoading } = useDashboardMetrics();
   const { data: upcomingMeetings = [], isLoading: meetingsLoading } = useUpcomingMeetings();
   const { data: agendaPoints = [], isLoading: agendaLoading } = useAgendaPoints();
   const { data: actions = [], isLoading: actionsLoading } = useActions();
+
+  const years = useMemo(() => {
+    const currentYear = now.getFullYear();
+    return Array.from({ length: 5 }, (_, i) => String(currentYear - i));
+  }, []);
+
+  const dateRange = useMemo(() => {
+    const month = parseInt(selectedMonth);
+    const year = parseInt(selectedYear);
+    const start = new Date(year, month, 1);
+    const end = new Date(year, month + 1, 0, 23, 59, 59);
+    return { start, end };
+  }, [selectedMonth, selectedYear]);
+
+  const filteredMeetings = useMemo(() => 
+    upcomingMeetings.filter(m => {
+      const d = new Date(m.date);
+      return d >= dateRange.start && d <= dateRange.end;
+    }), [upcomingMeetings, dateRange]);
+
+  const filteredAgendaPoints = useMemo(() => 
+    agendaPoints.filter(ap => {
+      const d = new Date(ap.created_at);
+      return d >= dateRange.start && d <= dateRange.end;
+    }), [agendaPoints, dateRange]);
+
+  const filteredActions = useMemo(() => 
+    actions.filter(a => {
+      const d = new Date(a.start_date);
+      return d >= dateRange.start && d <= dateRange.end;
+    }), [actions, dateRange]);
 
   return (
     <AppLayout 
@@ -30,6 +78,30 @@ export default function Dashboard() {
       subtitle="Visão geral das atividades do Board"
     >
       <div className="space-y-6">
+        {/* Date Filter */}
+        <div className="flex items-center gap-3">
+          <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+            <SelectTrigger className="w-[160px]">
+              <SelectValue placeholder="Mês" />
+            </SelectTrigger>
+            <SelectContent>
+              {months.map((month, i) => (
+                <SelectItem key={i} value={String(i)}>{month}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={selectedYear} onValueChange={setSelectedYear}>
+            <SelectTrigger className="w-[120px]">
+              <SelectValue placeholder="Ano" />
+            </SelectTrigger>
+            <SelectContent>
+              {years.map(year => (
+                <SelectItem key={year} value={year}>{year}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
         {/* Metrics Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <div onClick={() => navigate('/reunioes')} className="cursor-pointer">
@@ -79,12 +151,12 @@ export default function Dashboard() {
           {/* Left Column */}
           <div className="lg:col-span-2 space-y-6">
             <AgendaPipeline 
-              points={agendaPoints} 
+              points={filteredAgendaPoints} 
               isLoading={agendaLoading} 
               onStatusClick={(status) => navigate(`/agenda?status=${status}`)}
             />
             <RecentActions 
-              actions={actions} 
+              actions={filteredActions} 
               isLoading={actionsLoading} 
               onActionClick={() => navigate('/acoes?filter=Em curso')}
             />
@@ -93,7 +165,7 @@ export default function Dashboard() {
           {/* Right Column */}
           <div className="space-y-6">
             <UpcomingMeetings 
-              meetings={upcomingMeetings} 
+              meetings={filteredMeetings} 
               isLoading={meetingsLoading}
               onMeetingClick={(meetingId) => navigate(`/reunioes`)}
             />
@@ -108,7 +180,7 @@ export default function Dashboard() {
                 >
                   <span className="text-sm text-muted-foreground">Reuniões futuras</span>
                   <span className="text-sm font-semibold text-foreground">
-                    {upcomingMeetings.length}
+                    {filteredMeetings.length}
                   </span>
                 </div>
                 <div 
@@ -117,7 +189,7 @@ export default function Dashboard() {
                 >
                   <span className="text-sm text-muted-foreground">Pontos de agenda</span>
                   <span className="text-sm font-semibold text-foreground">
-                    {agendaPoints.length}
+                    {filteredAgendaPoints.length}
                   </span>
                 </div>
                 <div 
@@ -126,7 +198,7 @@ export default function Dashboard() {
                 >
                   <span className="text-sm text-muted-foreground">Total ações em curso</span>
                   <span className="text-sm font-semibold text-foreground">
-                    {actions.filter(a => a.status === 'Em curso').length}
+                    {filteredActions.filter(a => a.status === 'Em curso').length}
                   </span>
                 </div>
               </div>
