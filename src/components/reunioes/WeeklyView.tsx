@@ -210,51 +210,54 @@ export function WeeklyView({ meetings, onMeetingClick }: WeeklyViewProps) {
 
       {/* Days */}
       <div className="divide-y divide-border">
-        {weekDays.map(day => {
+        {weekDays.filter(day => {
           const key = format(day, 'yyyy-MM-dd');
-          const dayMeetings = meetingsByDay.get(key) || [];
-          const today = isToday(day);
+          return (meetingsByDay.get(key) || []).length > 0;
+        }).length === 0 ? (
+          <div className="text-center py-12 text-muted-foreground">
+            <Calendar className="w-10 h-10 mx-auto mb-2 opacity-50" />
+            <p>Sem reuniões nesta semana</p>
+          </div>
+        ) : (
+          weekDays.map(day => {
+            const key = format(day, 'yyyy-MM-dd');
+            const dayMeetings = meetingsByDay.get(key) || [];
+            if (dayMeetings.length === 0) return null;
+            const today = isToday(day);
 
-          return (
-            <div key={key} className={cn("flex", today && "bg-primary/5")}>
-              {/* Day label */}
-              <div className={cn(
-                "w-32 shrink-0 p-3 border-r border-border flex flex-col items-center justify-start",
-                today && "bg-primary/10"
-              )}>
-                <span className="text-xs text-muted-foreground uppercase">
-                  {format(day, 'EEE', { locale: pt })}
-                </span>
-                <span className={cn(
-                  "text-xl font-bold mt-0.5",
-                  today ? "text-primary" : "text-foreground"
+            return (
+              <div key={key} className={cn("flex", today && "bg-primary/5")}>
+                <div className={cn(
+                  "w-32 shrink-0 p-3 border-r border-border flex flex-col items-center justify-start",
+                  today && "bg-primary/10"
                 )}>
-                  {format(day, 'd')}
-                </span>
-                <span className="text-[10px] text-muted-foreground uppercase">
-                  {format(day, 'MMM', { locale: pt })}
-                </span>
-              </div>
+                  <span className="text-xs text-muted-foreground uppercase">
+                    {format(day, 'EEE', { locale: pt })}
+                  </span>
+                  <span className={cn(
+                    "text-xl font-bold mt-0.5",
+                    today ? "text-primary" : "text-foreground"
+                  )}>
+                    {format(day, 'd')}
+                  </span>
+                  <span className="text-[10px] text-muted-foreground uppercase">
+                    {format(day, 'MMM', { locale: pt })}
+                  </span>
+                </div>
 
-              {/* Meetings for day */}
-              <div className="flex-1 p-3 space-y-2 min-h-[60px]">
-                {dayMeetings.length === 0 ? (
-                  <div className="text-sm text-muted-foreground italic py-1">
-                    Sem reuniões
-                  </div>
-                ) : (
-                  dayMeetings.map(meeting => (
+                <div className="flex-1 p-3 space-y-2 min-h-[60px]">
+                  {dayMeetings.map(meeting => (
                     <MeetingRow
                       key={meeting.id}
                       meeting={meeting}
                       onMeetingClick={onMeetingClick}
                     />
-                  ))
-                )}
+                  ))}
+                </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })
+        )}
       </div>
     </div>
   );
