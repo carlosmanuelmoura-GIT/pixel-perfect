@@ -281,7 +281,12 @@ export default function Reunioes() {
           </Button>
         </div>
 
-        {viewMode === 'calendar' ? (
+        {viewMode === 'weekly' ? (
+          <WeeklyView
+            meetings={filteredMeetings}
+            onMeetingClick={handleMeetingClick}
+          />
+        ) : viewMode === 'calendar' ? (
           <MonthlyCalendar
             meetings={filteredMeetings}
             onMeetingClick={handleMeetingClick}
