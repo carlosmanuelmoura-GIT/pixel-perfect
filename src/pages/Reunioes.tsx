@@ -72,6 +72,7 @@ import {
 import type { Meeting, MeetingStatus, MeetingType, AgendaPoint } from '@/types/database';
 import { cn } from '@/lib/utils';
 import { MonthlyCalendar } from '@/components/reunioes/MonthlyCalendar';
+import { WeeklyView } from '@/components/reunioes/WeeklyView';
 
 const meetingTypeStyles: Record<MeetingType, string> = {
   CA: 'bg-primary/10 text-primary border-primary/20',
