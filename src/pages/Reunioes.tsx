@@ -72,6 +72,7 @@ import {
 import type { Meeting, MeetingStatus, MeetingType, AgendaPoint } from '@/types/database';
 import { cn } from '@/lib/utils';
 import { MonthlyCalendar } from '@/components/reunioes/MonthlyCalendar';
+import { WeeklyView } from '@/components/reunioes/WeeklyView';
 
 const meetingTypeStyles: Record<MeetingType, string> = {
   CA: 'bg-primary/10 text-primary border-primary/20',
@@ -99,7 +100,7 @@ export default function Reunioes() {
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
-  const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list');
+  const [viewMode, setViewMode] = useState<'list' | 'calendar' | 'weekly'>('weekly');
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingMeeting, setEditingMeeting] = useState<Meeting | null>(null);
   const [deleteMeeting, setDeleteMeeting] = useState<Meeting | null>(null);
@@ -245,6 +246,15 @@ export default function Reunioes() {
 
             <div className="flex items-center border rounded-md overflow-hidden">
               <Button
+                variant={viewMode === 'weekly' ? 'default' : 'ghost'}
+                size="sm"
+                className="rounded-none gap-2"
+                onClick={() => setViewMode('weekly')}
+              >
+                <CalendarDays className="w-4 h-4" />
+                Semanal
+              </Button>
+              <Button
                 variant={viewMode === 'list' ? 'default' : 'ghost'}
                 size="sm"
                 className="rounded-none gap-2"
@@ -259,8 +269,8 @@ export default function Reunioes() {
                 className="rounded-none gap-2"
                 onClick={() => setViewMode('calendar')}
               >
-                <CalendarDays className="w-4 h-4" />
-                Calendário
+                <Calendar className="w-4 h-4" />
+                Mensal
               </Button>
             </div>
           </div>
@@ -271,7 +281,12 @@ export default function Reunioes() {
           </Button>
         </div>
 
-        {viewMode === 'calendar' ? (
+        {viewMode === 'weekly' ? (
+          <WeeklyView
+            meetings={filteredMeetings}
+            onMeetingClick={handleMeetingClick}
+          />
+        ) : viewMode === 'calendar' ? (
           <MonthlyCalendar
             meetings={filteredMeetings}
             onMeetingClick={handleMeetingClick}
