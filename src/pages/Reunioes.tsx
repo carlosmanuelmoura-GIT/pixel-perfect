@@ -246,6 +246,15 @@ export default function Reunioes() {
 
             <div className="flex items-center border rounded-md overflow-hidden">
               <Button
+                variant={viewMode === 'weekly' ? 'default' : 'ghost'}
+                size="sm"
+                className="rounded-none gap-2"
+                onClick={() => setViewMode('weekly')}
+              >
+                <CalendarDays className="w-4 h-4" />
+                Semanal
+              </Button>
+              <Button
                 variant={viewMode === 'list' ? 'default' : 'ghost'}
                 size="sm"
                 className="rounded-none gap-2"
@@ -260,8 +269,8 @@ export default function Reunioes() {
                 className="rounded-none gap-2"
                 onClick={() => setViewMode('calendar')}
               >
-                <CalendarDays className="w-4 h-4" />
-                Calendário
+                <Calendar className="w-4 h-4" />
+                Mensal
               </Button>
             </div>
           </div>
