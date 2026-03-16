@@ -100,7 +100,7 @@ export default function Reunioes() {
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
-  const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list');
+  const [viewMode, setViewMode] = useState<'list' | 'calendar' | 'weekly'>('weekly');
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingMeeting, setEditingMeeting] = useState<Meeting | null>(null);
   const [deleteMeeting, setDeleteMeeting] = useState<Meeting | null>(null);
